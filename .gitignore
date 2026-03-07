@@ -1,0 +1,20 @@
+# Ігнорувати файл з паролями
+.env
+Koha-intranet.js
+candidates.txt
+IntranetUserJS.js
+archive/
+
+# Логи
+*.log
+logs/
+**/logs/
+
+# Python cache/bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+AGENTS.md
+hello-world.md
+NOTES.md
