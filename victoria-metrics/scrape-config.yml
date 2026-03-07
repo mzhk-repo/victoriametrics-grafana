@@ -1,0 +1,5 @@
+# Phase 0 placeholder.
+# Базовий scrape-config буде визначено у Phase 1.
+global:
+  scrape_interval: 15s
+scrape_configs: []
