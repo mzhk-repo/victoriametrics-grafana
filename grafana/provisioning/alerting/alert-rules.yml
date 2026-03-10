@@ -3,7 +3,7 @@ apiVersion: 1
 groups:
   - orgId: 1
     name: phase4-critical-alerting
-    folder: Alerting
+    folder: KDI / P0
     interval: 1m
     rules:
       - uid: host-high-cpu
@@ -604,7 +604,7 @@ groups:
                 type: prometheus
                 uid: victoriametrics
               editorMode: code
-              expr: (sum(rate(traefik_service_requests_total{job="traefik",env="prod",service="traefik",code=~"5.."}[5m])) / sum(rate(traefik_service_requests_total{job="traefik",env="prod",service="traefik"}[5m])) * 100)
+              expr: (sum(rate(traefik_service_requests_total{job="traefik",env="prod",code=~"5.."}[5m])) / sum(rate(traefik_service_requests_total{job="traefik",env="prod"}[5m])) * 100)
               instant: true
               intervalMs: 1000
               maxDataPoints: 43200
@@ -662,7 +662,7 @@ groups:
                 type: prometheus
                 uid: victoriametrics
               editorMode: code
-              expr: histogram_quantile(0.95, sum(rate(traefik_service_request_duration_seconds_bucket{job="traefik",env="prod",service="traefik"}[5m])) by (le))
+              expr: histogram_quantile(0.95, sum(rate(traefik_service_request_duration_seconds_bucket{job="traefik",env="prod"}[5m])) by (le))
               instant: true
               intervalMs: 1000
               maxDataPoints: 43200

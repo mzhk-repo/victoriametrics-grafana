@@ -3,7 +3,7 @@ groups:
     interval: 1m
     rules:
       - alert: TraefikHighErrorRate
-        expr: (sum(rate(traefik_service_requests_total{job="traefik",env="prod",service="traefik",code=~"5.."}[5m])) / sum(rate(traefik_service_requests_total{job="traefik",env="prod",service="traefik"}[5m])) * 100) > 5
+        expr: (sum(rate(traefik_service_requests_total{job="traefik",env="prod",code=~"5.."}[5m])) / sum(rate(traefik_service_requests_total{job="traefik",env="prod"}[5m])) * 100) > 5
         for: 5m
         labels:
           severity: critical
@@ -14,7 +14,7 @@ groups:
           runbook: docs/runbooks/monitoring-down.md
 
       - alert: TraefikHighLatency
-        expr: histogram_quantile(0.95, sum(rate(traefik_service_request_duration_seconds_bucket{job="traefik",env="prod",service="traefik"}[5m])) by (le)) > 5
+        expr: histogram_quantile(0.95, sum(rate(traefik_service_request_duration_seconds_bucket{job="traefik",env="prod"}[5m])) by (le)) > 5
         for: 5m
         labels:
           severity: warning
