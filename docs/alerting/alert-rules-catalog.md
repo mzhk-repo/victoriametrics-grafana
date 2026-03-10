@@ -12,6 +12,12 @@
 - Для `ContainerDown`, `MariaDB*`, `PostgreSQL*` додано guard `and on() (max(up{job="node-exporter",...}) == 1)`.
 - Це пригнічує flood secondary alert-ів, коли сам host недоступний.
 
+## VictoriaMetricsDown Semantics
+- `VictoriaMetricsDown` налаштовано як `severity=critical`, `for=2m`.
+- Для уникнення false-positive у healthy стані використовується `noDataState=NoData`.
+- Для сценарію повної недоступності VictoriaMetrics datasource використовується `execErrState=Alerting`.
+- Стан перевірено контрольованим outage/recovery тестом у Phase 5 (2026-03-10).
+
 ## P0 Rules
 
 | Rule | Severity | For | Runbook |
@@ -30,6 +36,8 @@
 | TraefikHighLatency | warning | 5m | `docs/runbooks/monitoring-down.md` |
 | VictoriaMetricsDown | critical | 2m | `docs/runbooks/monitoring-down.md` |
 | AnyTargetDown | warning | 2m | `docs/runbooks/monitoring-down.md` |
+| VictoriaMetricsBackupStale | critical | 10m | `docs/runbooks/vm-backup-restore.md` |
+| VictoriaMetricsRestoreSmokeStale | warning | 30m | `docs/runbooks/vm-backup-restore.md` |
 | WebsiteDown | critical | 2m | `docs/runbooks/website-probe.md` |
 | WebsiteHighLatency | warning | 5m | `docs/runbooks/website-probe.md` |
 
@@ -47,6 +55,7 @@
   - `grafana/provisioning/alerting/contact-points.yml`
   - `grafana/provisioning/alerting/notification-policies.yml`
   - `grafana/provisioning/alerting/alert-rules.yml`
+  - `grafana/provisioning/alerting/backup-alerts.yml`
   - `grafana/provisioning/alerting/website-alerts.yml`
 - Rule catalog (Prometheus-style):
   - `alerting/rules/host.yml`

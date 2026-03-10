@@ -23,3 +23,25 @@ groups:
         annotations:
           summary: One or more scrape targets are down
           runbook: docs/runbooks/monitoring-down.md
+
+      - alert: VictoriaMetricsBackupStale
+        expr: (time() - kdi_vm_backup_last_success_timestamp_seconds{job="node-exporter",env="prod",exported_service="monitoring"}) > 93600
+        for: 10m
+        labels:
+          severity: critical
+          env: prod
+          service: monitoring
+        annotations:
+          summary: VictoriaMetrics backup is stale (no successful backup in the last 26h)
+          runbook: docs/runbooks/vm-backup-restore.md
+
+      - alert: VictoriaMetricsRestoreSmokeStale
+        expr: (time() - kdi_vm_restore_smoke_last_success_timestamp_seconds{job="node-exporter",env="prod",exported_service="monitoring"}) > 691200
+        for: 30m
+        labels:
+          severity: warning
+          env: prod
+          service: monitoring
+        annotations:
+          summary: VictoriaMetrics restore smoke test is stale (no successful test in the last 8d)
+          runbook: docs/runbooks/vm-backup-restore.md

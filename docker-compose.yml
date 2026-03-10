@@ -29,6 +29,7 @@ services:
       - --path.rootfs=/host
       - --path.procfs=/host/proc
       - --path.sysfs=/host/sys
+      - --collector.textfile.directory=/vm-textfile-metrics
       - --collector.filesystem.mount-points-exclude=^/(dev|proc|run($|/.*)|sys|var/lib/docker($|/.*)|var/lib/containers/storage($|/.*))
       - --web.listen-address=:${NODE_EXPORTER_INTERNAL_PORT}
     ports:
@@ -38,6 +39,7 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - ${HOST_UDEV_PATH}:/run/udev:ro
+      - ${NODE_EXPORTER_TEXTFILE_DIR:-./.data/node-exporter-textfile}:/vm-textfile-metrics:ro
     networks:
       - monitoring_net
 
@@ -124,6 +126,9 @@ services:
       - .env
     environment:
       GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_USERS_AUTO_ASSIGN_ORG: "true"
+      GF_USERS_AUTO_ASSIGN_ORG_ROLE: ${GRAFANA_AUTO_ASSIGN_ORG_ROLE:-Viewer}
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
       GF_SMTP_ENABLED: ${GRAFANA_SMTP_ENABLED:-false}
