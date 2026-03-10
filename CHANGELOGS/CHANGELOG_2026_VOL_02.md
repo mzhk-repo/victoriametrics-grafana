@@ -185,3 +185,21 @@
 	- Очікуваний результат у CI: step shellcheck виконується без помилки про відсутній `bash`.
 - **Risks:** Якщо в майбутніх версіях образу зміниться шлях до binary, треба оновити entrypoint.
 - **Rollback:** Повернути попередню команду `docker run ... koalaman/shellcheck-alpine:v0.10.0 scripts/*.sh`.
+
+## [2026-03-10] — Hotfix CI: Trivy failure logs + best practices з `archive/ci-cd.yml`
+
+- **Context:** У CI падав Trivy step без корисної діагностики в логах, що ускладнювало аналіз причин.
+- **Change:**
+	- Оновлено `/.github/workflows/deploy-monitoring.yml` з практиками з `archive/ci-cd.yml`:
+		- додано pinned utility images у `env`: `SHELLCHECK_IMAGE`, `TRIVY_IMAGE` (за digest);
+		- додано pre-pull step `Pull CI utility images`;
+		- shellcheck step переведено на `find + mapfile` (явний список файлів).
+	- Trivy step замінено з action-wrapper на явний CLI запуск у container:
+		- `docker run ... ${TRIVY_IMAGE} config --skip-check-update --exit-code 1 --severity CRITICAL,HIGH /work`
+		- stdout/stderr пишуться через `tee` в тимчасовий лог;
+		- при fail лог виводиться повторно через `cat`, щоб причина завжди була в job output.
+- **Verification:**
+	- Локально перевірено YAML синтаксис workflow (`YAML OK`).
+	- Очікуваний результат у GitHub Actions: при падінні Trivy видно повний текст порушень у логах step.
+- **Risks:** digest pinned image потребує ручного оновлення при майбутніх апдейтах Trivy/Shellcheck.
+- **Rollback:** Повернути попередній Trivy step на `aquasecurity/trivy-action` і unpinned image refs.
