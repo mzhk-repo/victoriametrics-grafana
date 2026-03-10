@@ -34,6 +34,9 @@
 - Scrape job: `traefik`
 - Target (у `scrape-config.yml`): `traefik:8082`
 - Передумова: у Traefik має бути ввімкнений Prometheus metrics endpoint.
+- Для job `traefik` увімкнено `honor_labels: true`.
+- У labels для цього job залишаємо тільки `env: prod` (без статичного `service`).
+- Причина: Traefik сам віддає label `service` (`dspace-api@docker`, `dspace-ui@docker` тощо). Якщо перезаписати його статичним `service: traefik`, панелі `KDI Traefik v3 Overview` будуть порожні або некоректні.
 
 ### Blackbox Exporter (Phase 4)
 - Сервіс: `blackbox-exporter`

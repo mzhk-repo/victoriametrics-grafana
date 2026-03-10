@@ -117,3 +117,58 @@
 	- `/targets` показує resolved URL (`https://biblio...`, `https://library...`) для blackbox jobs.
 - **Risks:** В історичних метриках можуть тимчасово лишатися старі серії з instance `${KOHA_*}` до завершення retention.
 - **Rollback:** Повернути попередній `scrape-config.yml` і видалити template/script.
+
+## [2026-03-10] — Fix: Traefik dashboard `KDI Traefik v3 Overview` повернув дані
+
+- **Context:** Після оновлення Traefik metrics flags у `DSpace-docker` dashboard залишався майже порожнім.
+- **Change:**
+	- У `victoria-metrics/scrape-config.tmpl.yml` для job `traefik` додано `honor_labels: true`.
+	- Прибрано статичний label `service: traefik` у Traefik scrape job, щоб не перезаписувати native `service` від Traefik метрик.
+	- Оновлено змінну `service` у `grafana/dashboards/traefik-v3-official-17346.json`:
+		- `label_values(traefik_service_requests_total{service=~".*@docker"}, service)`
+	- Оновлено Traefik alert queries (rule catalog + Grafana provisioning), прибрано жорсткий фільтр `service="traefik"`.
+	- Оновлено документацію: `docs/configuration/exporters-config.md`, `docs/dashboards/dashboard-catalog.md`.
+- **Verification:**
+	- `docker exec victoriametrics wget -qO- http://traefik:8082/metrics` показує `traefik_entrypoint_*` і `traefik_service_*`.
+	- `curl http://127.0.0.1:8428/api/v1/query?query=topk(10,traefik_service_requests_total)` повертає серії з `service="dspace-api@docker"`, `service="dspace-ui@docker"`, `service="kdv-api@docker"`.
+	- `docker compose -f /home/pinokew/victoriametrics-grafana/docker-compose.yml restart grafana` без помилок dashboard provisioning.
+- **Risks:** Історичні серії зі старим label mapping (`service="traefik"` + `exported_service=...`) можуть деякий час співіснувати до природного оновлення вікна запиту/retention.
+- **Rollback:** Повернути попередні версії `scrape-config.tmpl.yml`, `traefik-v3-official-17346.json`, Traefik alert rules і перезапустити `victoriametrics` + `grafana`.
+
+## [2026-03-10] — Cleanup: прибрано папку `Alerting` зі списку Grafana
+
+- **Context:** У списку Dashboards знову з'явилась окрема папка `Alerting`.
+- **Change:**
+	- У provisioning alerting змінено folder mapping з `Alerting` на `KDI / P0` у файлах:
+		- `grafana/provisioning/alerting/alert-rules.yml`
+		- `grafana/provisioning/alerting/synthetic-alerts.yml`
+		- `grafana/provisioning/alerting/website-alerts.yml`
+	- Через Grafana API видалено папку `Alerting` (`uid=fffkoik3ug0e8f`) з параметром `forceDeleteRules=true`.
+- **Verification:**
+	- `GET /api/folders` повертає тільки `KDI / P0`.
+	- `docker compose -f /home/pinokew/victoriametrics-grafana/docker-compose.yml restart grafana` виконано.
+- **Risks:** Низькі; зміна стосується структури папок/організації правил у Grafana.
+- **Rollback:** Повернути `folder: Alerting` у provisioning файлах і перезапустити Grafana.
+
+## [2026-03-10] — Phase 5 (інкремент 1): CI security gate для monitoring stack
+
+- **Context:** Розпочато `Phase 5 — Security & Production Readiness Gate` з першого пункту: додати до CI перевірки `Hadolint`, `Trivy`, `check-internal-ports-policy.sh`, `koalaman/shellcheck`.
+- **Change:**
+	- Оновлено workflow `/.github/workflows/deploy-monitoring.yml`:
+		- додано job `security-gate` перед деплоєм;
+		- додано перевірку `bash scripts/check-internal-ports-policy.sh`;
+		- додано lint shell-скриптів через `koalaman/shellcheck-alpine:v0.10.0`;
+		- додано `Hadolint` для Dockerfile-ів (з безпечним skip, якщо Dockerfile відсутні);
+		- додано `Trivy` config scan для `docker-compose.yml`;
+		- `cd-deploy` зроблено залежним від `security-gate` (`needs`).
+	- Додано скрипт `scripts/check-internal-ports-policy.sh`:
+		- валідує, що `MONITORING_BIND_IP=127.0.0.1` у `.env.example`;
+		- перевіряє, що всі `ports` у `docker-compose.yml` використовують `${MONITORING_BIND_IP}`;
+		- блокує мапінги `0.0.0.0:*` та формати без host IP.
+- **Verification:**
+	- `bash scripts/check-internal-ports-policy.sh` -> `Port policy check passed`.
+	- Перевірено залежність пайплайна: `cd-deploy` стартує тільки після успішного `security-gate`.
+- **Risks:**
+	- Якщо у workflow з'являться shell-скрипти поза `scripts/*.sh`, їх потрібно додати в shellcheck step.
+	- Hadolint step наразі перевіряє тільки Dockerfile-шаблони; для compose lint за потреби можна додати окремий інструмент (`docker compose config`/`yamllint`).
+- **Rollback:** `git revert <commit>` + повторний запуск workflow.

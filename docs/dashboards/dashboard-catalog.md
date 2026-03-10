@@ -13,6 +13,10 @@
 | PostgreSQL | `grafana/dashboards/postgresql-overview-9628.json` | PostgreSQL Database (`9628`) | connections, transactions, cache stats, locks |
 | Traefik v3 | `grafana/dashboards/traefik-v3-official-17346.json` | Traefik Official (`17346`) | request rate, error rate, latency percentiles |
 
+## Примітка для `KDI Traefik v3 Overview`
+- Змінна `service` фільтрується як `.*@docker`, щоб прибрати технічні/історичні серії.
+- Панелі по `traefik_service_*` заповнюються тільки коли є реальний routed traffic через Traefik (з правильним `Host` для router rule), а не тільки `404` на дефолтний маршрут.
+
 ## Адаптація під стек KDI
 - Усі dashboards переведені на datasource `uid: victoriametrics`.
 - Прибрані import-only поля (`__inputs`, `gnetId`), щоб dashboards стабільно завантажувались через provisioning.
