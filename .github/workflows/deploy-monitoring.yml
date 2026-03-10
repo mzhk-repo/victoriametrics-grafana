@@ -1,27 +1,14 @@
 name: Monitoring CD Pipeline
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
     tags:
       - "v*.*.*"
-    paths:
-      - docker-compose.yml
-      - .env.example
-      - CHANGELOG.md
-      - CHANGELOGS/**
-      - README.md
-      - scripts/check-internal-ports-policy.sh
-      - scripts/*.sh
-      - victoria-metrics/**
-      - grafana/**
-      - alerting/**
-      - blackbox/**
-      - exporters/**
-      - docs/**
-      - docs/deployment/monitoring-stack-deploy.md
-      - .github/workflows/**
   workflow_dispatch:
 
 permissions:

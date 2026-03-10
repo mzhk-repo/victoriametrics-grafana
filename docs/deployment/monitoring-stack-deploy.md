@@ -17,32 +17,38 @@ git status
 docker compose ps
 ```
 
-2. Згенерувати `victoria-metrics/scrape-config.yml` із шаблону (для private Koha URL):
+2. Ініціалізувати директорії томів згідно `.env` та виставити права:
+
+```bash
+./scripts/init-monitoring-volumes.sh
+```
+
+3. Згенерувати `victoria-metrics/scrape-config.yml` із шаблону (для private Koha URL):
 
 ```bash
 ./scripts/render-scrape-config.sh
 ```
 
-3. Запустити стек:
+4. Запустити стек:
 
 ```bash
 docker compose up -d
 ```
 
-4. Перевірити health:
+5. Перевірити health:
 
 ```bash
 curl -s http://127.0.0.1:8428/health
 curl -s http://127.0.0.1:3000/api/health
 ```
 
-5. Перевірити targets:
+6. Перевірити targets:
 
 ```bash
 curl -s http://127.0.0.1:8428/targets | python3 -m json.tool
 ```
 
-6. Перевірити, що порти не публічні:
+7. Перевірити, що порти не публічні:
 
 ```bash
 ss -tlnp | grep -E '8428|3000|9100'
@@ -141,3 +147,28 @@ curl --connect-timeout 3 http://${EXTERNAL_IP}:8428/health
 Підключення до сервера відбувається через Tailscale Auth Key (ephemeral) + SSH.
 
 Ці кроки залежать від зовнішньої інфраструктури, тому виконуються окремо.
+
+## Backup і перевірка відновлення (Phase 5)
+
+Після стабільного запуску стеку виконай backup VictoriaMetrics volume:
+
+```bash
+./scripts/backup-victoriametrics-volume.sh
+```
+
+Перевір відновлення на тимчасовому контейнері (smoke test):
+
+```bash
+./scripts/test-victoriametrics-restore.sh
+```
+
+Повне відновлення з backup (destructive, перезаписує `VM_DATA_DIR`):
+
+```bash
+./scripts/restore-victoriametrics-backup.sh --yes
+```
+
+Очікування:
+- створено архів `vmdata-*.tar.gz` у `VM_BACKUP_DIR`;
+- створено checksum-файл `.sha256`;
+- restore smoke test повертає `Restore smoke test passed`.
