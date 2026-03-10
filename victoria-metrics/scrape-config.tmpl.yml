@@ -46,12 +46,12 @@ scrape_configs:
 
   - job_name: traefik
     metrics_path: /metrics
+    honor_labels: true
     static_configs:
       - targets:
           - traefik:8082
         labels:
           env: prod
-          service: traefik
 
   - job_name: blackbox-koha-opac
     metrics_path: /probe

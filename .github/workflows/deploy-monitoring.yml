@@ -9,6 +9,8 @@ on:
     paths:
       - docker-compose.yml
       - .env.example
+      - scripts/check-internal-ports-policy.sh
+      - scripts/*.sh
       - victoria-metrics/**
       - grafana/**
       - alerting/**
@@ -28,8 +30,57 @@ env:
   DEPLOY_COMPOSE_FILE: docker-compose.yml
 
 jobs:
+  security-gate:
+    name: security-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Check internal ports policy
+        shell: bash
+        run: bash scripts/check-internal-ports-policy.sh
+
+      - name: Shellcheck scripts (koalaman/shellcheck)
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$PWD:/work" -w /work koalaman/shellcheck-alpine:v0.10.0 \
+            scripts/*.sh
+
+      - name: Hadolint Dockerfiles
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t dockerfiles < <(find . -type f \( -name 'Dockerfile' -o -name 'Dockerfile.*' -o -name '*.Dockerfile' \) | sort)
+
+          if [ "${#dockerfiles[@]}" -eq 0 ]; then
+            echo "No Dockerfiles found. Hadolint step skipped."
+            exit 0
+          fi
+
+          for dockerfile in "${dockerfiles[@]}"; do
+            echo "Linting ${dockerfile}"
+            docker run --rm -v "$PWD:/work" -w /work hadolint/hadolint hadolint "${dockerfile}"
+          done
+
+      - name: Trivy config scan (docker-compose)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: docker-compose.yml
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: 1
+
   cd-deploy:
     name: cd-deploy
+    needs:
+      - security-gate
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 30

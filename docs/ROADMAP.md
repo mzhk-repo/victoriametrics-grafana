@@ -212,7 +212,7 @@ Secrets: .env (never in Git)
 **Мета:** Фінальний security check та підтвердження production readiness.
 
 **Задачі:**
-- [ ] Додати monitoring compose до CI: Hadolint, Trivy scan, `check-internal-ports-policy.sh`
+- [ ] Додати monitoring compose до CI: Hadolint, Trivy scan, `check-internal-ports-policy.sh`, koalaman/shellcheck
 - [ ] Gitleaks scan — no secrets
 - [ ] Grafana RBAC: admin для ops-team, viewer для stakeholders
 - [ ] Налаштувати backup VictoriaMetrics volume (vmbackup або cron snapshot), протестувати відновлення
