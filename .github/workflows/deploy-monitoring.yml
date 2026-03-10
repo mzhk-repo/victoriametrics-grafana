@@ -49,8 +49,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker run --rm -v "$PWD:/work" -w /work koalaman/shellcheck-alpine:v0.10.0 \
-            scripts/*.sh
+          docker run --rm -v "$PWD:/work" -w /work --entrypoint /bin/shellcheck \
+            koalaman/shellcheck-alpine:v0.10.0 scripts/*.sh
 
       - name: Hadolint Dockerfiles
         shell: bash
