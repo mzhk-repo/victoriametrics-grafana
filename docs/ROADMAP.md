@@ -212,11 +212,13 @@ Secrets: .env (never in Git)
 **Мета:** Фінальний security check та підтвердження production readiness.
 
 **Задачі:**
-- [ ] Додати monitoring compose до CI: Hadolint, Trivy scan, `check-internal-ports-policy.sh`, koalaman/shellcheck
-- [ ] Gitleaks scan — no secrets
-- [ ] Grafana RBAC: admin для ops-team, viewer для stakeholders
-- [ ] Налаштувати backup VictoriaMetrics volume (vmbackup або cron snapshot), протестувати відновлення
-- [ ] Перевірити "observability of observability": alert `VictoriaMetricsDown` — критичний і працює
+- [x] Додати monitoring compose до CI: Hadolint, Trivy scan, `check-internal-ports-policy.sh`, koalaman/shellcheck
+- [x] Gitleaks scan — no secrets
+- [x] Grafana RBAC: admin для ops-team, viewer для stakeholders
+- [x] Налаштувати backup VictoriaMetrics volume (vmbackup або cron snapshot), протестувати відновлення
+- [x] Налаштувати init-volumes, smoker restore і backup restore, протестувати
+- [x] Налаштувати алерти на створення бекапів та успішного проходження smoke restore test
+- [x] Перевірити "observability of observability": alert `VictoriaMetricsDown` — критичний і працює
 - [ ] Пройти Go-Live Checklist (Section 7)
 
 **DoD:** Go-Live Checklist пройдено повністю, Trivy без CRITICAL, backup протестований.
@@ -251,33 +253,33 @@ Secrets: .env (never in Git)
 ### Go-Live Checklist
 
 **🔒 Безпека (всі обов'язкові)**
-- [ ] VictoriaMetrics недоступний публічно
-- [ ] Grafana недоступна без Cloudflare Access auth
-- [ ] Жоден exporter порт не публічний
-- [ ] Grafana admin password — не `admin/admin`, береться з `.env`
-- [ ] Gitleaks scan — no secrets
-- [ ] DB exporters — read-only users
-- [ ] Trivy scan — no CRITICAL
+- [x] VictoriaMetrics недоступний публічно
+- [x] Grafana недоступна без Cloudflare Access auth
+- [x] Жоден exporter порт не публічний
+- [x] Grafana admin password — не `admin/admin`, береться з `.env`
+- [x] Gitleaks scan — no secrets
+- [x] DB exporters — read-only users
+- [x] Trivy scan — no CRITICAL
 
 **⚙️ Функціональність (всі обов'язкові)**
-- [ ] Всі P0 scrape targets `UP`
-- [ ] Метрики зберігаються ≥24 год без втрат
-- [ ] Всі P0 dashboards відображають реальні дані
-- [ ] Всі P0 alert rules активні
-- [ ] Тестовий alert отримано на email 
-- [ ] Alert `VictoriaMetricsDown` протестований
-- [ ] Grafana datasource Test → success
+- [x] Всі P0 scrape targets `UP`
+- [x] Метрики зберігаються ≥24 год без втрат
+- [x] Всі P0 dashboards відображають реальні дані
+- [x] Всі P0 alert rules активні
+- [x] Тестовий alert отримано на email 
+- [x] Alert `VictoriaMetricsDown` протестований
+- [x] Grafana datasource Test → success
 
 **📁 Config-as-Code (всі обов'язкові)**
-- [ ] Dashboards у Git як JSON
-- [ ] Alert rules у Git як YAML
-- [ ] Grafana datasources у Git (provisioning)
-- [ ] Після `docker compose down && up` — все відновлюється автоматично
+- [x] Dashboards у Git як JSON
+- [x] Alert rules у Git як YAML
+- [x] Grafana datasources у Git (provisioning)
+- [x] Після `docker compose down && up` — все відновлюється автоматично
 
 **💾 Надійність (всі обов'язкові)**
-- [ ] Retention 90d встановлений
-- [ ] VM volume backup налаштований та протестований
-- [ ] `restart: unless-stopped` для VictoriaMetrics і Grafana
+- [x] Retention 90d встановлений
+- [x] VM volume backup налаштований та протестований
+- [x] `restart: unless-stopped` для VictoriaMetrics і Grafana
 
 ### Примітка щодо go-live блокерів
 

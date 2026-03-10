@@ -285,8 +285,8 @@ groups:
               maxDataPoints: 43200
               refId: C
               type: threshold
-        noDataState: Alerting
-        execErrState: Error
+        noDataState: NoData
+        execErrState: Alerting
         for: 2m
         annotations:
           summary: Key container is missing in cAdvisor metrics for 2 minutes
@@ -753,8 +753,8 @@ groups:
               maxDataPoints: 43200
               refId: C
               type: threshold
-        noDataState: Alerting
-        execErrState: Error
+        noDataState: NoData
+        execErrState: Alerting
         for: 2m
         annotations:
           summary: VictoriaMetrics scrape target is absent for 2 minutes
