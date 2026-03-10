@@ -203,3 +203,18 @@
 	- Очікуваний результат у GitHub Actions: при падінні Trivy видно повний текст порушень у логах step.
 - **Risks:** digest pinned image потребує ручного оновлення при майбутніх апдейтах Trivy/Shellcheck.
 - **Rollback:** Повернути попередній Trivy step на `aquasecurity/trivy-action` і unpinned image refs.
+
+## [2026-03-10] — Hotfix deploy: retry для health checks після `docker compose up -d`
+
+- **Context:** Пайплайн деплою інколи падав на health checks з транзитною помилкою `curl: (56) Recv failure: Connection reset by peer` одразу після старту сервісів.
+- **Change:**
+	- У `/.github/workflows/deploy-monitoring.yml` додано функцію `wait_for_http` у SSH deploy script.
+	- Замість одноразових `curl` застосовано retry:
+		- VictoriaMetrics `/health`: `12` спроб, інтервал `5s`;
+		- Grafana `/api/health`: `18` спроб, інтервал `5s`.
+	- При кожній невдалій спробі логуються номер retry та endpoint; при успіху — явне повідомлення про pass.
+- **Verification:**
+	- Локально перевірено синтаксис workflow YAML (`YAML OK`).
+	- Очікуваний результат у CI/CD: transient reset під час warm-up не валить деплой з першої спроби.
+- **Risks:** Якщо сервіс стабільно недоступний, деплой все одно завершиться помилкою після вичерпання retry (очікувана поведінка).
+- **Rollback:** Повернути одноразові `curl` health checks у deploy script.
