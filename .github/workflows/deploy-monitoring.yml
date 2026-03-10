@@ -26,6 +26,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  SHELLCHECK_IMAGE: koalaman/shellcheck@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d
+  TRIVY_IMAGE: aquasec/trivy@sha256:3d1f862cb6c4fe13c1506f96f816096030d8d5ccdb2380a3069f7bf07daa86aa
   DEPLOY_BRANCH: main
   DEPLOY_COMPOSE_FILE: docker-compose.yml
 
@@ -45,12 +47,27 @@ jobs:
         shell: bash
         run: bash scripts/check-internal-ports-policy.sh
 
+      - name: Pull CI utility images
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull "${SHELLCHECK_IMAGE}"
+          docker pull "${TRIVY_IMAGE}"
+
       - name: Shellcheck scripts (koalaman/shellcheck)
         shell: bash
         run: |
           set -euo pipefail
+          mapfile -t files < <(find scripts -type f -name '*.sh' 2>/dev/null | sort)
+
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No shell scripts found in scripts/. Shellcheck step skipped."
+            exit 0
+          fi
+
+          printf 'Shellcheck files:\n%s\n' "${files[@]}"
           docker run --rm -v "$PWD:/work" -w /work --entrypoint /bin/shellcheck \
-            koalaman/shellcheck-alpine:v0.10.0 scripts/*.sh
+            "${SHELLCHECK_IMAGE}" "${files[@]}"
 
       - name: Hadolint Dockerfiles
         shell: bash
@@ -68,14 +85,18 @@ jobs:
             docker run --rm -v "$PWD:/work" -w /work hadolint/hadolint hadolint "${dockerfile}"
           done
 
-      - name: Trivy config scan (docker-compose)
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          scan-type: config
-          scan-ref: docker-compose.yml
-          format: table
-          severity: CRITICAL,HIGH
-          exit-code: 1
+      - name: Trivy config scan (docker-compose, verbose logs)
+        shell: bash
+        run: |
+          set -euo pipefail
+          trivy_log="$(mktemp)"
+
+          if ! docker run --rm -v "$PWD:/work" -w /work "${TRIVY_IMAGE}" \
+            config --skip-check-update --exit-code 1 --severity CRITICAL,HIGH /work 2>&1 | tee "$trivy_log"; then
+            echo "Trivy config scan failed. Full Trivy output follows:"
+            cat "$trivy_log" || true
+            exit 1
+          fi
 
   cd-deploy:
     name: cd-deploy
