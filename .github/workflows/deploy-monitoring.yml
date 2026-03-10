@@ -181,8 +181,31 @@ jobs:
             docker compose -f "${DEPLOY_COMPOSE_FILE}" ps
 
             echo "---- health checks ----"
-            curl -fsS http://127.0.0.1:8428/health
-            curl -fsS http://127.0.0.1:3000/api/health
+
+            wait_for_http() {
+              local name="$1"
+              local url="$2"
+              local attempts="$3"
+              local delay_seconds="$4"
+
+              local i
+              for i in $(seq 1 "$attempts"); do
+                if curl -fsS "$url"; then
+                  echo
+                  echo "Health check passed for ${name} (${url})"
+                  return 0
+                fi
+
+                echo "Health check retry ${i}/${attempts} failed for ${name} (${url}); waiting ${delay_seconds}s"
+                sleep "$delay_seconds"
+              done
+
+              echo "ERROR: Health check failed for ${name} after ${attempts} attempts: ${url}"
+              return 1
+            }
+
+            wait_for_http "VictoriaMetrics" "http://127.0.0.1:8428/health" 12 5
+            wait_for_http "Grafana" "http://127.0.0.1:3000/api/health" 18 5
 
             echo "---- targets checks ----"
             targets="$(curl -fsS http://127.0.0.1:8428/targets)"
