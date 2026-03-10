@@ -172,3 +172,16 @@
 	- Якщо у workflow з'являться shell-скрипти поза `scripts/*.sh`, їх потрібно додати в shellcheck step.
 	- Hadolint step наразі перевіряє тільки Dockerfile-шаблони; для compose lint за потреби можна додати окремий інструмент (`docker compose config`/`yamllint`).
 - **Rollback:** `git revert <commit>` + повторний запуск workflow.
+
+## [2026-03-10] — Hotfix CI: shellcheck-alpine без `bash`
+
+- **Context:** У GitHub Actions крок shellcheck падав з помилкою `env: can't execute 'bash': No such file or directory` при запуску `koalaman/shellcheck-alpine:v0.10.0`.
+- **Change:**
+	- У `/.github/workflows/deploy-monitoring.yml` для step `Shellcheck scripts (koalaman/shellcheck)` додано явний entrypoint:
+		- `--entrypoint /bin/shellcheck`
+	- Це обходить wrapper у образі, який очікує `bash` у alpine runtime.
+- **Verification:**
+	- Локально перевірено синтаксис workflow YAML.
+	- Очікуваний результат у CI: step shellcheck виконується без помилки про відсутній `bash`.
+- **Risks:** Якщо в майбутніх версіях образу зміниться шлях до binary, треба оновити entrypoint.
+- **Rollback:** Повернути попередню команду `docker run ... koalaman/shellcheck-alpine:v0.10.0 scripts/*.sh`.
