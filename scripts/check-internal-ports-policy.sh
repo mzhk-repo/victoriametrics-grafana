@@ -29,6 +29,7 @@ fi
 echo "Checking published port mappings in $COMPOSE_FILE"
 
 violations=0
+expected_bind_token="\${MONITORING_BIND_IP}"
 
 while IFS='|' read -r service raw_mapping; do
   mapping="${raw_mapping%\"}"
@@ -39,7 +40,7 @@ while IFS='|' read -r service raw_mapping; do
     violations=$((violations + 1))
   fi
 
-  if [[ "$mapping" != *'${MONITORING_BIND_IP}'* ]]; then
+  if [[ "$mapping" != *"$expected_bind_token"* ]]; then
     echo "ERROR: Service '$service' must use MONITORING_BIND_IP in ports mapping: $mapping"
     violations=$((violations + 1))
   fi
