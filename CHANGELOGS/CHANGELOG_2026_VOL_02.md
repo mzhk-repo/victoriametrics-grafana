@@ -290,3 +290,18 @@
 	- Gitleaks більше не репортує ці 2 findings з `VOL_01`.
 - **Risks:** Низькі; зміна тільки в тексті документації/історичних прикладах.
 - **Rollback:** Повернути попередні рядки з `curl -u ...` у `VOL_01`.
+
+## [2026-03-10] — Hotfix CI trigger: push у `main` не запускав workflow
+
+- **Context:** Після частини комітів у `main` workflow `deploy-monitoring.yml` не стартував у GitHub Actions.
+- **Cause:** У `on.push.paths` був занадто вузький allow-list, що не покривав типові файли (`CHANGELOGS/**`, частину `docs/**`, інші каталоги репо).
+- **Change:**
+	- Розширено `paths` у `/.github/workflows/deploy-monitoring.yml`:
+		- додано `CHANGELOG.md`, `CHANGELOGS/**`, `README.md`;
+		- додано `docs/**`, `blackbox/**`, `exporters/**`;
+		- замінено точковий `.github/workflows/deploy-monitoring.yml` на `.github/workflows/**`.
+- **Verification:**
+	- Локально перевірено YAML синтаксис workflow (`YAML OK`).
+	- Очікуваний результат: типові зміни в monitoring-репо на `main` тепер запускають pipeline.
+- **Risks:** Більше запусків CI/CD при документаційних змінах (контрольований trade-off).
+- **Rollback:** Повернути попередній вузький список `paths`.
