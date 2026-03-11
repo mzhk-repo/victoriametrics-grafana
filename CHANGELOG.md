@@ -6,6 +6,11 @@
 
 - `CHANGELOGS/CHANGELOG_2026_VOL_03.md`
 
+### Останні зафіксовані оновлення (VOL_03)
+
+- Phase 5: верифікація `VictoriaMetricsDown` (critical, outage/recovery test, rule semantics `noDataState=NoData`, `execErrState=Alerting`).
+- Documentation: додано `docs/system-architecture-document.md` і `docs/tech-stack-infrastructure-overview.md`.
+
 ## Томи
 
 - `CHANGELOGS/CHANGELOG_2026_VOL_01.md` — archived, старт Phase 0 (Pre-Flight) до soft limit 300 рядків
