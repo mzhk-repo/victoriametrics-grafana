@@ -115,3 +115,16 @@
 		- `docker compose start victoriametrics` -> після recovery/evaluation алерт очищається (active count -> `0`).
 - **Risks:** Під час ручного outage test зупинка `victoriametrics` може тимчасово згенерувати `DatasourceError` для інших правил (очікувана поведінка під час тесту).
 - **Rollback:** Повернути попередні `noDataState/execErrState` у `grafana/provisioning/alerting/alert-rules.yml` і виконати `docker compose restart grafana`.
+
+## [2026-03-11] — Documentation: SAD + Tech Stack/Infrastructure overview
+
+- **Context:** Потрібно сформувати детальні проектні документи в `docs/` на базі вже наявних артефактів (roadmap, architecture, deployment, security, alerting).
+- **Change:**
+	- Додано `docs/system-architecture-document.md` (System Architecture Document, SAD).
+	- Додано `docs/tech-stack-infrastructure-overview.md` (огляд стеку та інфраструктури).
+	- Документи синхронізовано з поточною реалізацією у `docker-compose.yml`, `docs/ROADMAP.md`, `docs/architecture/*`, `docs/deployment/*`, `docs/security/*`, `docs/alerting/*`.
+- **Verification:**
+	- Перевірено наявність файлів у `docs/`.
+	- Контент не вводить нових архітектурних рішень, а консолідує вже затверджені у репозиторії.
+- **Risks:** Можливе часткове застарівання деталей при майбутніх змінах compose/provisioning без оновлення цих документів.
+- **Rollback:** Видалити додані файли або відкотити коміт із документацією.
