@@ -14,8 +14,13 @@ if [[ -z "${KOHA_STAFF_URL:-}" ]] && [[ -f "$ENV_FILE" ]]; then
   KOHA_STAFF_URL="$(grep '^KOHA_STAFF_URL=' "$ENV_FILE" | head -n1 | cut -d= -f2-)"
 fi
 
+if [[ -z "${MATOMO_URL:-}" ]] && [[ -f "$ENV_FILE" ]]; then
+  MATOMO_URL="$(grep '^MATOMO_URL=' "$ENV_FILE" | head -n1 | cut -d= -f2-)"
+fi
+
 : "${KOHA_OPAC_URL:?KOHA_OPAC_URL is required (env var or .env)}"
 : "${KOHA_STAFF_URL:?KOHA_STAFF_URL is required (env var or .env)}"
+: "${MATOMO_URL:?MATOMO_URL is required (env var or .env)}"
 
 if [[ ! "$KOHA_OPAC_URL" =~ ^https?:// ]]; then
   echo "KOHA_OPAC_URL must start with http:// or https://" >&2
@@ -27,12 +32,18 @@ if [[ ! "$KOHA_STAFF_URL" =~ ^https?:// ]]; then
   exit 1
 fi
 
+if [[ ! "$MATOMO_URL" =~ ^https?:// ]]; then
+  echo "MATOMO_URL must start with http:// or https://" >&2
+  exit 1
+fi
+
 escape_sed() {
   printf '%s' "$1" | sed -e 's/[\/&]/\\&/g'
 }
 
 opac_escaped="$(escape_sed "$KOHA_OPAC_URL")"
 staff_escaped="$(escape_sed "$KOHA_STAFF_URL")"
+matomo_escaped="$(escape_sed "$MATOMO_URL")"
 
 tmp_file="$(mktemp)"
 trap 'rm -f "$tmp_file"' EXIT
@@ -40,6 +51,7 @@ trap 'rm -f "$tmp_file"' EXIT
 sed \
   -e "s/__KOHA_OPAC_URL__/${opac_escaped}/g" \
   -e "s/__KOHA_STAFF_URL__/${staff_escaped}/g" \
+  -e "s/__MATOMO_URL__/${matomo_escaped}/g" \
   "$TEMPLATE_FILE" > "$tmp_file"
 
 mv "$tmp_file" "$OUTPUT_FILE"

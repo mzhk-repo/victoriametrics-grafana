@@ -4767,8 +4767,8 @@
         "allValue": null,
         "current": {
           "selected": true,
-          "text": "mariadb-exporter:9104",
-          "value": "mariadb-exporter:9104"
+          "text": "matomo-mariadb-exporter:9104",
+          "value": "matomo-mariadb-exporter:9104"
         },
         "datasource": {
           "type": "prometheus",
@@ -4781,7 +4781,7 @@
         "multiFormat": "regex values",
         "name": "host",
         "options": [],
-        "query": "label_values(mysql_up{service=\"koha\",component=\"db\"}, instance)",
+        "query": "label_values(mysql_up{service=\"matomo\",component=\"db\"}, instance)",
         "refresh": 1,
         "refresh_on_load": true,
         "regex": "",
@@ -4831,8 +4831,8 @@
     "type": "timepicker"
   },
   "timezone": "browser",
-  "title": "KDI Koha-MariaDB Overview",
-  "uid": "kdi-mariadb-overview",
+  "title": "Matomo MariaDB Overview",
+  "uid": "kdi-matomo-mariadb-overview",
   "version": 1,
   "description": "Dashboard from Percona Monitoring and Management project. "
 }

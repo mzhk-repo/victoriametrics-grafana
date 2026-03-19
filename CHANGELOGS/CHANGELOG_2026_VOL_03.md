@@ -190,3 +190,111 @@
 - **Verification:** Після рестарту Grafana дашборд Traefik отримує дані для проблемних панелей; у `GET /api/folders` залишається одна цільова папка `KDI-P0`.
 - **Risks:** Потрібно синхронно тримати однакову назву folder у dashboard/alerting provisioning; розсинхрон поверне дублікати.
 - **Rollback:** Повернути попередні версії dashboard JSON/provisioning YAML з Git history і перезапустити `grafana`.
+
+## [2026-03-19] — Phase 6 (Matomo Monitoring): Крок 1 — HTTP probe (Blackbox)
+
+- **Context:** Запуск нової фази моніторингу **Matomo Analytics**: збір метрик вебзахисту, поточність резервних копій та health перевірок. Крок 1 — налаштування базового HTTP probe доступності Matomo.
+- **Change:**
+	- Оновлено `victoria-metrics/scrape-config.yml`:
+		- додано новий scrape job `blackbox-matomo`:
+			- target: `https://matomo.pinokew.buzz`
+			- модуль: `http_tls` (перевірка TLS + HTTP 2xx status)
+			- labels: `env=prod`, `service=matomo`, `website=analytics`
+			- relabel config за аналогією з існуючими Koha website проbes
+	- Перезапущено VictoriaMetrics (`docker compose restart victoriametrics`)
+- **Verification:**
+	- `curl -s http://127.0.0.1:8428/targets | grep blackbox-matomo` → `(1/1 up)`
+	- `curl -s http://127.0.0.1:8428/api/v1/query?query=probe_success` включає метрику з labels `job="blackbox-matomo"` та value `"1"` (успіх)
+	- Interval scrape: 15s, жодних errors у логах: `docker compose logs victoriametrics | tail -50`
+- **Risks:** Якщо `https://matomo.pinokew.buzz` стає недоступною, метрика повернеться до `"0"` та активуватиме alert (коли буде налаштовано на Кроку 4).
+- **Rollback:** Видалити блок `blackbox-matomo` з `scrape-config.yml` і виконати `docker compose restart victoriametrics`.
+## [2026-03-19] — Phase 6 (Matomo Monitoring): Крок 1+ — Alert на availability (MatomoDown)
+
+- **Context:** Завершення Кроку 1 — додання alert правила для моніторингу доступності Matomo. Alert повинна спрацювати якщо `probe_success` = 0 > 5 хвилин.
+- **Change:**
+- Додано alert rule `MatomoDown` до групи `phase4-website-alerting` у файлі `grafana/provisioning/alerting/website-alerts.yml`
+- Вираз: бере метрику `probe_success` для Matomo (job="blackbox-matomo") та перевіряє чи value < 1
+- Період оцінки: `for: 5m` (alert спрацює якщо умова істинна 5 хвилин)
+- Severity: `critical` (критичний, тому що Matomo - це основний analytic сервіс)
+- Annotations: summary і description з посиланням на runbook `docs/runbooks/matomo-down.md`
+- **Verification (тест проведено):**
+- Додано тимчасовий тестовий target `https://matomo-test-fail.invalid` до scrape-config.yml для спровокування failure
+- Знижено `for` на `1m` для швидкого тесту (замість 5m)
+- Перезапущено VictoriaMetrics и Grafana
+- У логах Grafana побачено: `rule_uid=matomo-down org_id=1 ... "Sending alerts to local notifier" count=1` ✅
+- Alert успішно спрацьовує повторно кожні хвилини на failed probe
+- **Cleanup (після тесту):**
+- Видалено тестовий target з `scrape-config.yml`
+- Повернуто оригінальне `for: 5m` (замість 1m)
+- Перевірено: `curl http://127.0.0.1:8428/targets | grep blackbox-matomo` → `(1/1 up)` з одним валідним target
+- **Risks:** 
+- Alert у браузинговому стані (OK, не firing) поки Matomo доступна
+- При недоступності > 5m → critical alert + notification до contact points (MS365 Email)
+- **Rollback:** Видалити alert блок з `website-alerts.yml` і перезапустити `docker compose restart grafana`
+
+## [2026-03-19] — Phase 6 (Matomo Monitoring): render-шаблон + MATOMO_URL в env
+
+- **Context:** Потрібно уніфікувати генерацію `scrape-config.yml` через шаблон та скрипт рендеру, щоб Matomo URL брався з env.
+- **Change:**
+	- Оновлено `victoria-metrics/scrape-config.tmpl.yml`: додано `blackbox-matomo` job з placeholder `__MATOMO_URL__`.
+	- Оновлено `scripts/render-scrape-config.sh`: додано читання/валідацію `MATOMO_URL` і підстановку `__MATOMO_URL__`.
+	- Оновлено `.env.example`: додано `MATOMO_URL=https://matomo.pinokew.buzz`.
+	- Оновлено локальний `.env`: додано `MATOMO_URL=https://matomo.pinokew.buzz`.
+- **Verification:**
+	- `./scripts/render-scrape-config.sh` виконується успішно.
+	- У згенерованому `victoria-metrics/scrape-config.yml` присутні:
+		- `job_name: blackbox-matomo`
+		- `https://matomo.pinokew.buzz`
+- **Risks:** Якщо `MATOMO_URL` відсутній або не починається з `http://`/`https://`, рендер скриптом блокується (очікувана поведінка).
+- **Rollback:** Відкотити зміни у шаблоні/скрипті/env та повторно згенерувати `scrape-config.yml`.
+
+## [2026-03-19] — Phase 6 (Matomo Monitoring): Крок 2 — Koha/Matomo MariaDB dashboards + alerts
+
+- **Context:** Потрібно розділити MariaDB observability для Koha і Matomo: окремі дашборди та окремі alert rules без змішування.
+- **Change:**
+	- Dashboards:
+		- Перейменовано `grafana/dashboards/mariadb-overview-7362.json` → title `KDI Koha-MariaDB Overview`.
+		- Додано новий дашборд `grafana/dashboards/matomo-mariadb-overview-7362.json` з title `Matomo MariaDB Overview`, uid `kdi-matomo-mariadb-overview`.
+		- Для обох дашбордів змінна `host` тепер фільтрується по `service`:
+			- Koha: `label_values(mysql_up{service="koha",component="db"}, instance)`
+			- Matomo: `label_values(mysql_up{service="matomo",component="db"}, instance)`
+	- Exporter/metrics path:
+		- Додано сервіс `matomo-mariadb-exporter` у `docker-compose.yml`.
+		- Додано external network `matomonet` (`MATOMO_NETWORK_NAME`).
+		- Додано env-шаблонні змінні для Matomo exporter у `.env.example`.
+		- Додано scrape job `matomo-mariadb-exporter` у `victoria-metrics/scrape-config.tmpl.yml` і перерендерено `scrape-config.yml`.
+	- Alerts (rename + add):
+		- Перейменовано Koha alerts:
+			- `MariaDBDown` → `KohaMariaDBDown`
+			- `MariaDBConnectionsHigh` → `KohaMariaDBConnectionsHigh`
+		- Додано Matomo alerts:
+			- `MatomoMariaDBDown`
+			- `MatomoMariaDBConnectionsHigh`
+		- Оновлено обидва джерела правил: `alerting/rules/databases.yml` і `grafana/provisioning/alerting/alert-rules.yml`.
+	- Оновлено документацію каталогів дашбордів:
+		- `grafana/dashboards/README.md`
+		- `docs/dashboards/dashboard-catalog.md`
+- **Verification:**
+	- `./scripts/render-scrape-config.sh` → успішно.
+	- `docker compose config -q` → успішно.
+	- `curl http://127.0.0.1:8428/targets` показує `job=matomo-mariadb-exporter (1/1 up)`.
+	- YAML валідний для `alerting/rules/databases.yml` та `grafana/provisioning/alerting/alert-rules.yml`.
+	- `mysql_up`:
+		- Koha: `1`
+		- Matomo: `0` (потрібні коректні credentials/read-only user для exporter).
+- **Risks:** Matomo DB alert `MatomoMariaDBDown` буде firing, доки `mysql_up` для Matomo не стане `1`.
+- **Rollback:** Відкотити зміни у `docker-compose.yml`, scrape template, dashboards і alert rules + `docker compose up -d`.
+
+## [2026-03-19] — Phase 6 (Matomo Monitoring): Matomo MariaDB read-only user + mysql_up=1
+- **Context:** Після додавання `matomo-mariadb-exporter` метрика `mysql_up{service="matomo"}` була `0`; потрібна робоча read-only авторизація.
+- **Change:**
+- У контейнері `matomo-db` створено/оновлено користувача `metrics_reader@%`.
+- Надано права: `PROCESS`, `REPLICATION CLIENT`, `SELECT` (read-only для exporter).
+- Оновлено локальні runtime-змінні exporter у `.env`: `MATOMO_MARIADB_EXPORTER_USER`, `MATOMO_MARIADB_EXPORTER_PASSWORD`, `MATOMO_MARIADB_EXPORTER_TARGET`.
+- Перезапущено `matomo-mariadb-exporter` та `victoriametrics`.
+- **Verification:**
+- `curl http://127.0.0.1:8428/targets` → `job=matomo-mariadb-exporter (1/1 up)`.
+- `curl .../api/v1/query?query=mysql_up{job="matomo-mariadb-exporter",service="matomo"}` → value `1`.
+- Локально у exporter `/metrics` присутній `mysql_up 1`.
+- **Risks:** У логах exporter можливі попередження по `slave_status` (не впливає на `mysql_up=1`).
+- **Rollback:** Видалити/відкликати `metrics_reader` у Matomo MariaDB, повернути попередні runtime env exporter, перезапустити compose.

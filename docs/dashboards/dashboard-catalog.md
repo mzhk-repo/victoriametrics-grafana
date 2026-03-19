@@ -9,7 +9,8 @@
 |---|---|---|---|
 | Host Overview | `grafana/dashboards/host-overview-node-exporter-1860.json` | Node Exporter Full (`1860`) | CPU %, RAM %, disk free %, network I/O, load average |
 | Docker Containers | `grafana/dashboards/docker-containers-cadvisor-14282.json` | cAdvisor Exporter (`14282`) | CPU/RAM per container, container load, filesystem usage |
-| MariaDB | `grafana/dashboards/mariadb-overview-7362.json` | MySQL Overview (`7362`) | connections, QPS, InnoDB metrics, slow queries |
+| Koha-MariaDB | `grafana/dashboards/mariadb-overview-7362.json` | MySQL Overview (`7362`) | connections, QPS, InnoDB metrics, slow queries |
+| Matomo MariaDB | `grafana/dashboards/matomo-mariadb-overview-7362.json` | MySQL Overview (`7362`) | connections, QPS, InnoDB metrics, slow queries |
 | PostgreSQL | `grafana/dashboards/postgresql-overview-9628.json` | PostgreSQL Database (`9628`) | connections, transactions, cache stats, locks |
 | Traefik v3 | `grafana/dashboards/traefik-v3-official-17346.json` | Traefik Official (`17346`) | request rate, error rate, latency percentiles |
 
