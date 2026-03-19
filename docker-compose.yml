@@ -103,6 +103,24 @@ services:
       - monitoring_net
       - kohanet
 
+  matomo-mariadb-exporter:
+    image: ${MARIADB_EXPORTER_IMAGE}
+    container_name: matomo-mariadb-exporter
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      MYSQLD_EXPORTER_PASSWORD: ${MATOMO_MARIADB_EXPORTER_PASSWORD:-change_me}
+    command:
+      - --mysqld.address=${MATOMO_MARIADB_EXPORTER_TARGET:-matomo-db:3306}
+      - --mysqld.username=${MATOMO_MARIADB_EXPORTER_USER:-metrics_reader}
+      - --web.listen-address=:${MATOMO_MARIADB_EXPORTER_INTERNAL_PORT:-9104}
+    ports:
+      - "${MONITORING_BIND_IP}:${MATOMO_MARIADB_EXPORTER_HOST_PORT:-19104}:${MATOMO_MARIADB_EXPORTER_INTERNAL_PORT:-9104}"
+    networks:
+      - monitoring_net
+      - matomonet
+
   postgres-exporter:
     image: ${POSTGRES_EXPORTER_IMAGE}
     container_name: postgres-exporter
@@ -172,4 +190,7 @@ networks:
     external: true
   proxy-net:
     name: ${PROXY_NET_NETWORK_NAME}
+    external: true
+  matomonet:
+    name: ${MATOMO_NETWORK_NAME:-matomo-analytics_matomonet}
     external: true

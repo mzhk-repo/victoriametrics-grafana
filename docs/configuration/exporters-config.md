@@ -49,6 +49,97 @@
 	- `blackbox-koha-opac`
 	- `blackbox-koha-staff`
 
+## Matomo DB Size Metric (Phase 6)
+- Скрипт: `scripts/collect-matomo-db-size.sh`
+- Джерело: `information_schema.tables` у контейнері `matomo-db`
+- Механізм експорту: `node-exporter` textfile collector
+- Prometheus-метрики:
+	- `kdi_matomo_database_size_bytes`
+	- `kdi_matomo_database_size_last_collect_timestamp_seconds`
+	- `kdi_matomo_database_size_last_status`
+- Labels у textfile:
+	- `env="prod"`
+	- `service="matomo"`
+	- `component="db"`
+
+### Ручний запуск
+```bash
+./scripts/collect-matomo-db-size.sh
+```
+
+### Cron (щоденний приклад)
+```cron
+15 2 * * * cd /opt/victoriametrics-grafana && ./scripts/collect-matomo-db-size.sh >> /var/log/matomo-db-size.log 2>&1
+```
+
+### Alert threshold
+- `MatomoDatabaseSizeHigh` → warning, якщо `kdi_matomo_database_size_bytes > 5_000_000_000`
+
+## Matomo Archiving Freshness Metric (Phase 6)
+- Скрипт: `scripts/collect-matomo-archiving-metric.sh`
+- Джерело: `docker logs --timestamps matomo-cron`
+- Success marker: рядок `Done archiving!`
+- Механізм експорту: `node-exporter` textfile collector
+- Метрики:
+	- `matomo_archiving_last_success_timestamp`
+	- `matomo_archiving_last_collect_timestamp`
+	- `matomo_archiving_last_status`
+
+### Ручний запуск
+```bash
+./scripts/collect-matomo-archiving-metric.sh
+```
+
+### Cron (щогодинний приклад)
+```cron
+5 * * * * cd /opt/victoriametrics-grafana && ./scripts/collect-matomo-archiving-metric.sh >> /var/log/matomo-archiving-metric.log 2>&1
+```
+
+### Alert threshold
+- `MatomoArchivingStale` → critical, якщо `time() - matomo_archiving_last_success_timestamp > 7200`
+
+## Matomo Backup Freshness Metric (Phase 6)
+- Джерело: `Matomo-analytics/scripts/backup.sh`
+- Механізм експорту: `node-exporter` textfile collector
+- Метрики:
+	- `matomo_backup_last_run_timestamp`
+	- `matomo_backup_last_success_timestamp`
+	- `matomo_backup_last_status`
+
+### Ручний запуск
+```bash
+cd /home/pinokew/Matomo-analytics && ./scripts/backup.sh --dry-run
+```
+
+### Cron (щоденний приклад)
+```cron
+30 2 * * * cd /home/pinokew/Matomo-analytics && ./scripts/backup.sh >> /var/log/matomo-backup.log 2>&1
+```
+
+### Alert threshold
+- `MatomoBackupStale` → critical, якщо `time() - matomo_backup_last_success_timestamp > 93600` (26 годин)
+
+## Matomo Restore Smoke Metric (Phase 6)
+- Скрипт: `Matomo-analytics/scripts/test-restore.sh`
+- Механізм експорту: `node-exporter` textfile collector
+- Метрики:
+	- `matomo_restore_smoke_last_run_timestamp`
+	- `matomo_restore_smoke_last_success_timestamp`
+	- `matomo_restore_smoke_last_status`
+
+### Ручний запуск
+```bash
+cd /home/pinokew/Matomo-analytics && ./scripts/test-restore.sh --dry-run
+```
+
+### Cron (weekly приклад)
+```cron
+30 3 * * 1 cd /home/pinokew/Matomo-analytics && ./scripts/test-restore.sh >> /var/log/matomo-restore-smoke.log 2>&1
+```
+
+### Alert threshold
+- `MatomoRestoreSmokeStale` → warning, якщо `time() - matomo_restore_smoke_last_success_timestamp > 691200` (8 діб)
+
 ## Команди запуску
 
 1. Базовий стек + cAdvisor:

@@ -1,0 +1,64 @@
+groups:
+  - name: phase6-matomo
+    interval: 1m
+    rules:
+      - alert: MatomoDown
+        expr: probe_success{job="blackbox-matomo",env="prod",service="matomo"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          env: prod
+          service: matomo
+        annotations:
+          summary: "Matomo analytics ({{ $labels.instance }}) is unavailable for 5 minutes"
+          description: "HTTP probe to Matomo failed. TLS or HTTP 2xx status check failed."
+          runbook: docs/runbooks/matomo-down.md
+
+      - alert: MatomoDatabaseSizeHigh
+        expr: kdi_matomo_database_size_bytes{job="node-exporter",env="prod",service="host",exported_service="matomo",component="db",database="matomo"} > 5000000000
+        for: 30m
+        labels:
+          severity: warning
+          env: prod
+          service: matomo
+          component: db
+        annotations:
+          summary: "Matomo MariaDB size exceeded 5 GB"
+          description: "Matomo database size is above the 5 GB review threshold; check retention and cleanup strategy."
+          runbook: docs/configuration/retention-policy.md
+
+      - alert: MatomoArchivingStale
+        expr: (time() - matomo_archiving_last_success_timestamp{job="node-exporter",env="prod",service="host",exported_service="matomo"}) > 7200
+        for: 10m
+        labels:
+          severity: critical
+          env: prod
+          service: matomo
+        annotations:
+          summary: "Matomo archiving is stale (no successful run in the last 2 hours)"
+          description: "Matomo core:archive has not completed successfully within the expected 2-hour window."
+          runbook: docs/runbooks/monitoring-down.md
+
+      - alert: MatomoBackupStale
+        expr: (time() - matomo_backup_last_success_timestamp{job="node-exporter",env="prod",service="host",exported_service="matomo"}) > 93600
+        for: 30m
+        labels:
+          severity: critical
+          env: prod
+          service: matomo
+        annotations:
+          summary: "Matomo backup is stale (no successful backup in the last 26 hours)"
+          description: "Matomo backup has not completed successfully within the expected daily window."
+          runbook: docs/runbooks/vm-backup-restore.md
+
+      - alert: MatomoRestoreSmokeStale
+        expr: (time() - matomo_restore_smoke_last_success_timestamp{job="node-exporter",env="prod",service="host",exported_service="matomo"}) > 691200
+        for: 30m
+        labels:
+          severity: warning
+          env: prod
+          service: matomo
+        annotations:
+          summary: "Matomo restore smoke test is stale (no successful test in the last 8 days)"
+          description: "Matomo weekly restore smoke test has not completed successfully within the expected 8-day window."
+          runbook: docs/runbooks/vm-backup-restore.md

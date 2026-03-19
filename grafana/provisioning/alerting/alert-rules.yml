@@ -354,8 +354,8 @@ groups:
           env: prod
           service: host
 
-      - uid: mariadb-down
-        title: MariaDBDown
+      - uid: koha-mariadb-down
+        title: KohaMariaDBDown
         condition: C
         data:
           - refId: A
@@ -405,7 +405,7 @@ groups:
         execErrState: Error
         for: 2m
         annotations:
-          summary: MariaDB exporter metrics are absent for 2 minutes
+          summary: Koha MariaDB exporter metrics are absent for 2 minutes
           runbook: docs/runbooks/monitoring-down.md
         labels:
           severity: critical
@@ -413,8 +413,8 @@ groups:
           service: koha
           component: db
 
-      - uid: mariadb-connections-high
-        title: MariaDBConnectionsHigh
+      - uid: koha-mariadb-connections-high
+        title: KohaMariaDBConnectionsHigh
         condition: C
         data:
           - refId: A
@@ -464,13 +464,368 @@ groups:
         execErrState: Error
         for: 5m
         annotations:
-          summary: MariaDB connections exceeded 90% of max_connections
+          summary: Koha MariaDB connections exceeded 90% of max_connections
           runbook: docs/runbooks/database-connections-high.md
         labels:
           severity: critical
           env: prod
           service: koha
           component: db
+
+      - uid: matomo-mariadb-down
+        title: MatomoMariaDBDown
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 180
+              to: 0
+            datasourceUid: victoriametrics
+            model:
+              datasource:
+                type: prometheus
+                uid: victoriametrics
+              editorMode: code
+              expr: absent_over_time(mysql_up{job="matomo-mariadb-exporter",env="prod",service="matomo",component="db"}[2m]) and on() (max(up{job="node-exporter",env="prod",service="host"}) == 1)
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: Alerting
+        execErrState: Error
+        for: 2m
+        annotations:
+          summary: Matomo MariaDB exporter metrics are absent for 2 minutes
+          runbook: docs/runbooks/monitoring-down.md
+        labels:
+          severity: critical
+          env: prod
+          service: matomo
+          component: db
+
+      - uid: matomo-mariadb-connections-high
+        title: MatomoMariaDBConnectionsHigh
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics
+            model:
+              datasource:
+                type: prometheus
+                uid: victoriametrics
+              editorMode: code
+              expr: ((mysql_global_status_threads_connected{job="matomo-mariadb-exporter",env="prod",service="matomo",component="db"} / mysql_global_variables_max_connections{job="matomo-mariadb-exporter",env="prod",service="matomo",component="db"}) * 100) and on() (max(up{job="node-exporter",env="prod",service="host"}) == 1)
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 90
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: Matomo MariaDB connections exceeded 90% of max_connections
+          runbook: docs/runbooks/database-connections-high.md
+        labels:
+          severity: critical
+          env: prod
+          service: matomo
+          component: db
+
+      - uid: matomo-database-size-high
+        title: MatomoDatabaseSizeHigh
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: victoriametrics
+            model:
+              datasource:
+                type: prometheus
+                uid: victoriametrics
+              editorMode: code
+              expr: kdi_matomo_database_size_bytes{job="node-exporter",env="prod",service="host",exported_service="matomo",component="db",database="matomo"}
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 5000000000
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 30m
+        annotations:
+          summary: Matomo MariaDB size exceeded 5 GB
+          description: Matomo database size is above the 5 GB review threshold; check retention and cleanup strategy.
+          runbook: docs/configuration/retention-policy.md
+        labels:
+          severity: warning
+          env: prod
+          service: matomo
+          component: db
+
+      - uid: matomo-archiving-stale
+        title: MatomoArchivingStale
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 10800
+              to: 0
+            datasourceUid: victoriametrics
+            model:
+              datasource:
+                type: prometheus
+                uid: victoriametrics
+              editorMode: code
+              expr: (time() - matomo_archiving_last_success_timestamp{job="node-exporter",env="prod",service="host",exported_service="matomo"})
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 7200
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: Alerting
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: Matomo archiving is stale (no successful run in the last 2 hours)
+          description: Matomo core:archive has not completed successfully within the expected 2-hour window.
+          runbook: docs/runbooks/monitoring-down.md
+        labels:
+          severity: critical
+          env: prod
+          service: matomo
+
+      - uid: matomo-backup-stale
+        title: MatomoBackupStale
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 172800
+              to: 0
+            datasourceUid: victoriametrics
+            model:
+              datasource:
+                type: prometheus
+                uid: victoriametrics
+              editorMode: code
+              expr: (time() - matomo_backup_last_success_timestamp{job="node-exporter",env="prod",service="host",exported_service="matomo"})
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 93600
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: Alerting
+        execErrState: Error
+        for: 30m
+        annotations:
+          summary: Matomo backup is stale (no successful backup in the last 26 hours)
+          description: Matomo backup has not completed successfully within the expected daily window.
+          runbook: docs/runbooks/vm-backup-restore.md
+        labels:
+          severity: critical
+          env: prod
+          service: matomo
+
+      - uid: matomo-restore-smoke-stale
+        title: MatomoRestoreSmokeStale
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1209600
+              to: 0
+            datasourceUid: victoriametrics
+            model:
+              datasource:
+                type: prometheus
+                uid: victoriametrics
+              editorMode: code
+              expr: (time() - matomo_restore_smoke_last_success_timestamp{job="node-exporter",env="prod",service="host",exported_service="matomo"})
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 691200
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: Alerting
+        execErrState: Error
+        for: 30m
+        annotations:
+          summary: Matomo restore smoke test is stale (no successful test in the last 8 days)
+          description: Matomo weekly restore smoke test has not completed successfully within the expected 8-day window.
+          runbook: docs/runbooks/vm-backup-restore.md
+        labels:
+          severity: warning
+          env: prod
+          service: matomo
 
       - uid: postgresql-down
         title: PostgreSQLDown

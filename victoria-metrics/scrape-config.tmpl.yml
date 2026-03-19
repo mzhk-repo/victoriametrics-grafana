@@ -19,6 +19,14 @@ scrape_configs:
           service: host
 
   - job_name: cadvisor
+    max_scrape_size: 32MB
+    metric_relabel_configs:
+      - action: labeldrop
+        regex: container_label_traefik_http_.+
+      - action: labeldrop
+        regex: container_label_org_opencontainers_image_.+
+      - action: labeldrop
+        regex: container_label_org_label_schema_.+
     static_configs:
       - targets:
           - cadvisor:8081
@@ -33,6 +41,15 @@ scrape_configs:
         labels:
           env: prod
           service: koha
+          component: db
+
+  - job_name: matomo-mariadb-exporter
+    static_configs:
+      - targets:
+          - matomo-mariadb-exporter:9104
+        labels:
+          env: prod
+          service: matomo
           component: db
 
   - job_name: postgres-exporter
@@ -85,6 +102,26 @@ scrape_configs:
           env: prod
           service: koha
           website: staff
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  - job_name: blackbox-matomo
+    metrics_path: /probe
+    params:
+      module:
+        - http_tls
+    static_configs:
+      - targets:
+          - __MATOMO_URL__
+        labels:
+          env: prod
+          service: matomo
+          website: analytics
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
