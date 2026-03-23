@@ -1,0 +1,3 @@
+[allowlist]
+  description = "Historical findings with revoked secrets"
+  commits = ["5edf597237ea41fa077bdffbc1abf43af0bccdcd"]
