@@ -101,7 +101,7 @@ mkdir_with_docker() {
     -e BASE_NAME="$base_name" \
     -v "$parent_dir:/host-parent" \
     "$DOCKER_IMAGE" \
-    sh -ceu 'mkdir -p "/host-parent/$BASE_NAME"'
+    sh -ceu 'mkdir -p "/host-parent/$1"' _ "$BASE_NAME"
 }
 
 chown_with_docker() {
@@ -111,7 +111,7 @@ chown_with_docker() {
     -e OWNER="$owner" \
     -v "$target:/target" \
     "$DOCKER_IMAGE" \
-    sh -ceu 'chown "$OWNER" /target'
+    sh -ceu 'chown "$1" /target' _ "$OWNER"
 }
 
 chmod_with_docker() {
@@ -121,7 +121,7 @@ chmod_with_docker() {
     -e MODE="$mode" \
     -v "$target:/target" \
     "$DOCKER_IMAGE" \
-    sh -ceu 'chmod "$MODE" /target'
+    sh -ceu 'chmod "$1" /target' _ "$MODE"
 }
 
 ensure_dir() {
