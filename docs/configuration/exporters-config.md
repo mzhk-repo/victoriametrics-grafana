@@ -19,6 +19,7 @@
 	- `MARIADB_EXPORTER_TARGET`
 	- `MARIADB_EXPORTER_USER`
 	- `MARIADB_EXPORTER_PASSWORD`
+- Для Docker Swarm використовуй DNS-ім'я сервісу/alias у мережі Koha (наприклад `db:3306`), а не container/task ім'я на кшталт `koha-deploy-db-1:3306`.
 - Мережі: `monitoring_net` + `${KOHANET_NETWORK_NAME}`
 - Профіль: `phase2-db`
 

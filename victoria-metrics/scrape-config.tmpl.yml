@@ -19,7 +19,7 @@ scrape_configs:
           service: host
 
   - job_name: cadvisor
-    max_scrape_size: 32MB
+    max_scrape_size: 64MB
     metric_relabel_configs:
       - action: labeldrop
         regex: container_label_traefik_http_.+

@@ -1,0 +1,123 @@
+services:
+  victoriametrics:
+    container_name: !reset null
+    restart: !reset null
+    mem_limit: !reset null
+    memswap_limit: !reset null
+    ports: !reset []
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      placement:
+        constraints:
+          - node.labels.app_zone == manager
+  node-exporter:
+    container_name: !reset null
+    restart: !reset null
+    pid: !reset null
+    ports: !reset []
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      placement:
+        constraints:
+          - node.labels.app_zone == manager
+  cadvisor:
+    container_name: !reset null
+    restart: !reset null
+    pid: !reset null
+    cgroup: !reset null
+    privileged: !reset null
+    devices: !reset []
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      placement:
+        constraints:
+          - node.labels.app_zone == manager
+  blackbox-exporter:
+    container_name: !reset null
+    restart: !reset null
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      placement:
+        constraints:
+          - node.labels.app_zone == manager
+  mariadb-exporter:
+    container_name: !reset null
+    restart: !reset null
+    ports: !reset []
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      placement:
+        constraints:
+          - node.labels.app_zone == manager
+  matomo-mariadb-exporter:
+    container_name: !reset null
+    restart: !reset null
+    ports: !reset []
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      placement:
+        constraints:
+          - node.labels.app_zone == manager
+  postgres-exporter:
+    container_name: !reset null
+    restart: !reset null
+    ports: !reset []
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      placement:
+        constraints:
+          - node.labels.app_zone == manager
+  grafana:
+    container_name: !reset null
+    restart: !reset null
+    depends_on: !reset []
+    ports: !reset []
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      placement:
+        constraints:
+          - node.labels.app_zone == manager
+
+networks:
+  monitoring_net:
+    driver: overlay
