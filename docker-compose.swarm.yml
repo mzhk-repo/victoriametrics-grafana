@@ -2,6 +2,7 @@ services:
   victoriametrics:
     container_name: !reset null
     restart: !reset null
+    env_file: !reset []
     mem_limit: !reset null
     memswap_limit: !reset null
     ports: !reset []
@@ -63,6 +64,18 @@ services:
   mariadb-exporter:
     container_name: !reset null
     restart: !reset null
+    env_file: !reset []
+    environment: !reset null
+    secrets:
+      - source: mariadb_exporter_password
+        target: mariadb_exporter_password
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        export MYSQLD_EXPORTER_PASSWORD="$(cat /run/secrets/mariadb_exporter_password)"
+        exec /bin/mysqld_exporter "$$@"
+      - --
     ports: !reset []
     deploy:
       replicas: 1
@@ -77,6 +90,18 @@ services:
   matomo-mariadb-exporter:
     container_name: !reset null
     restart: !reset null
+    env_file: !reset []
+    environment: !reset null
+    secrets:
+      - source: matomo_mariadb_exporter_password
+        target: matomo_mariadb_exporter_password
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        export MYSQLD_EXPORTER_PASSWORD="$(cat /run/secrets/matomo_mariadb_exporter_password)"
+        exec /bin/mysqld_exporter "$$@"
+      - --
     ports: !reset []
     deploy:
       replicas: 1
@@ -91,6 +116,7 @@ services:
   postgres-exporter:
     container_name: !reset null
     restart: !reset null
+    env_file: !reset []
     ports: !reset []
     deploy:
       replicas: 1
@@ -106,6 +132,38 @@ services:
     container_name: !reset null
     restart: !reset null
     depends_on: !reset []
+    env_file: !reset []
+    environment: !override
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_USERS_AUTO_ASSIGN_ORG: "true"
+      GF_USERS_AUTO_ASSIGN_ORG_ROLE: ${GRAFANA_AUTO_ASSIGN_ORG_ROLE:-Viewer}
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SMTP_ENABLED: ${GRAFANA_SMTP_ENABLED:-false}
+      GF_SMTP_HOST: ${MS365_SMTP_HOST:-}:${MS365_SMTP_PORT:-587}
+      GF_SMTP_USER: ${MS365_SMTP_USER:-}
+      GF_SMTP_FROM_ADDRESS: ${MS365_ALERT_EMAIL_FROM:-}
+      GF_SMTP_FROM_NAME: ${MS365_ALERT_FROM_NAME:-KDI Monitoring}
+      MS365_ALERT_EMAIL_TO: ${MS365_ALERT_EMAIL_TO:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      VM_DATASOURCE_URL: ${VM_DATASOURCE_URL}
+    secrets:
+      - source: grafana_admin_password
+        target: grafana_admin_password
+      - source: grafana_smtp_password
+        target: grafana_smtp_password
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        if [ -f /run/secrets/grafana_admin_password ]; then
+          export GF_SECURITY_ADMIN_PASSWORD="$(cat /run/secrets/grafana_admin_password)"
+        fi
+        if [ -f /run/secrets/grafana_smtp_password ]; then
+          export GF_SMTP_PASSWORD="$(cat /run/secrets/grafana_smtp_password)"
+        fi
+        exec /run.sh
     ports: !reset []
     deploy:
       replicas: 1
@@ -117,6 +175,20 @@ services:
       placement:
         constraints:
           - node.labels.app_zone == manager
+
+secrets:
+  grafana_admin_password:
+    external: true
+    name: ${GRAFANA_ADMIN_PASSWORD_SECRET_NAME:-monitoring_grafana_admin_password_dev_v1}
+  grafana_smtp_password:
+    external: true
+    name: ${MS365_SMTP_PASSWORD_SECRET_NAME:-monitoring_ms365_smtp_password_dev_v1}
+  mariadb_exporter_password:
+    external: true
+    name: ${MARIADB_EXPORTER_PASSWORD_SECRET_NAME:-monitoring_mariadb_exporter_password_dev_v1}
+  matomo_mariadb_exporter_password:
+    external: true
+    name: ${MATOMO_MARIADB_EXPORTER_PASSWORD_SECRET_NAME:-monitoring_matomo_mariadb_exporter_password_dev_v1}
 
 networks:
   monitoring_net:
