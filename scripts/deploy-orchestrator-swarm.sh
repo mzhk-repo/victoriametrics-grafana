@@ -5,11 +5,31 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 MODE="${ORCHESTRATOR_MODE:-noop}"
-STACK_NAME="${STACK_NAME:-matomo}"
+STACK_NAME="${STACK_NAME:-victoriametrics-grafana}"
 ENV_FILE="${ORCHESTRATOR_ENV_FILE:-/tmp/env.decrypted}"
 
 log() {
   printf '[deploy-orchestrator] %s\n' "$*"
+}
+
+read_env_var_from_file() {
+  local key file raw value
+  key="$1"
+  file="$2"
+
+  if [[ ! -f "${file}" ]]; then
+    return 0
+  fi
+
+  raw="$(grep -m1 "^${key}=" "${file}" || true)"
+  if [[ -z "${raw}" ]]; then
+    return 0
+  fi
+
+  value="${raw#*=}"
+  value="${value%\"}"
+  value="${value#\"}"
+  printf '%s' "${value}"
 }
 
 detect_compose_file() {
@@ -76,6 +96,28 @@ run_ansible_secrets_if_configured() {
     --tags secrets
 }
 
+ensure_swarm_overlay_network() {
+  local network_name scope driver
+  network_name="$1"
+
+  if docker network inspect "${network_name}" >/dev/null 2>&1; then
+    scope="$(docker network inspect -f '{{.Scope}}' "${network_name}" 2>/dev/null || true)"
+    driver="$(docker network inspect -f '{{.Driver}}' "${network_name}" 2>/dev/null || true)"
+
+    if [[ "${scope}" != "swarm" || "${driver}" != "overlay" ]]; then
+      log "ERROR: network '${network_name}' exists but is '${driver}/${scope}', expected 'overlay/swarm'"
+      log "Set MONITORING_NETWORK_NAME to an existing swarm overlay network or remove the conflicting network."
+      exit 1
+    fi
+
+    log "Using existing swarm overlay network '${network_name}'"
+    return 0
+  fi
+
+  log "Creating swarm overlay network '${network_name}'"
+  docker network create --driver overlay --attachable "${network_name}" >/dev/null
+}
+
 deploy_swarm() {
   local compose_file swarm_file raw_manifest deploy_manifest
 
@@ -105,6 +147,18 @@ deploy_swarm() {
   fi
 
   run_ansible_secrets_if_configured
+
+  if [[ -z "${MONITORING_NETWORK_NAME:-}" ]]; then
+    MONITORING_NETWORK_NAME="$(read_env_var_from_file "MONITORING_NETWORK_NAME" "${ENV_FILE}")"
+  fi
+
+  if [[ -z "${MONITORING_NETWORK_NAME:-}" ]]; then
+    log "ERROR: MONITORING_NETWORK_NAME is not set"
+    exit 1
+  fi
+  export MONITORING_NETWORK_NAME
+  log "Using MONITORING_NETWORK_NAME=${MONITORING_NETWORK_NAME}"
+  ensure_swarm_overlay_network "${MONITORING_NETWORK_NAME}"
 
   log "Rendering Swarm manifest (stack=${STACK_NAME}, env_file=${ENV_FILE})"
   docker compose --env-file "${ENV_FILE}" \

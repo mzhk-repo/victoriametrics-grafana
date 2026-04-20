@@ -192,4 +192,5 @@ secrets:
 
 networks:
   monitoring_net:
-    driver: overlay
+    external: true
+    name: ${MONITORING_NETWORK_NAME}
