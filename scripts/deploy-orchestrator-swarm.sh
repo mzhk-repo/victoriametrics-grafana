@@ -77,7 +77,7 @@ run_ansible_secrets_if_configured() {
 }
 
 deploy_swarm() {
-  local compose_file swarm_file raw_manifest deploy_manifest base_monitoring_network_name
+  local compose_file swarm_file raw_manifest deploy_manifest
 
   compose_file="$(detect_compose_file)"
   swarm_file="docker-compose.swarm.yml"
@@ -106,14 +106,12 @@ deploy_swarm() {
 
   run_ansible_secrets_if_configured
 
-  # Swarm network name must be env-driven and unique enough to avoid collisions
-  # with pre-existing non-swarm networks that may share MONITORING_NETWORK_NAME.
-  base_monitoring_network_name="${MONITORING_NETWORK_NAME:-monitoring_net}"
-  if [[ -z "${MONITORING_SWARM_NETWORK_NAME:-}" ]]; then
-    MONITORING_SWARM_NETWORK_NAME="${STACK_NAME}_${base_monitoring_network_name}"
+  if [[ -z "${MONITORING_NETWORK_NAME:-}" ]]; then
+    log "ERROR: MONITORING_NETWORK_NAME is not set"
+    exit 1
   fi
-  export MONITORING_SWARM_NETWORK_NAME
-  log "Using MONITORING_SWARM_NETWORK_NAME=${MONITORING_SWARM_NETWORK_NAME}"
+  export MONITORING_NETWORK_NAME
+  log "Using MONITORING_NETWORK_NAME=${MONITORING_NETWORK_NAME}"
 
   log "Rendering Swarm manifest (stack=${STACK_NAME}, env_file=${ENV_FILE})"
   docker compose --env-file "${ENV_FILE}" \
