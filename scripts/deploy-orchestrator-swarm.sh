@@ -96,6 +96,28 @@ run_ansible_secrets_if_configured() {
     --tags secrets
 }
 
+ensure_swarm_overlay_network() {
+  local network_name scope driver
+  network_name="$1"
+
+  if docker network inspect "${network_name}" >/dev/null 2>&1; then
+    scope="$(docker network inspect -f '{{.Scope}}' "${network_name}" 2>/dev/null || true)"
+    driver="$(docker network inspect -f '{{.Driver}}' "${network_name}" 2>/dev/null || true)"
+
+    if [[ "${scope}" != "swarm" || "${driver}" != "overlay" ]]; then
+      log "ERROR: network '${network_name}' exists but is '${driver}/${scope}', expected 'overlay/swarm'"
+      log "Set MONITORING_NETWORK_NAME to an existing swarm overlay network or remove the conflicting network."
+      exit 1
+    fi
+
+    log "Using existing swarm overlay network '${network_name}'"
+    return 0
+  fi
+
+  log "Creating swarm overlay network '${network_name}'"
+  docker network create --driver overlay --attachable "${network_name}" >/dev/null
+}
+
 deploy_swarm() {
   local compose_file swarm_file raw_manifest deploy_manifest
 
@@ -136,6 +158,7 @@ deploy_swarm() {
   fi
   export MONITORING_NETWORK_NAME
   log "Using MONITORING_NETWORK_NAME=${MONITORING_NETWORK_NAME}"
+  ensure_swarm_overlay_network "${MONITORING_NETWORK_NAME}"
 
   log "Rendering Swarm manifest (stack=${STACK_NAME}, env_file=${ENV_FILE})"
   docker compose --env-file "${ENV_FILE}" \
