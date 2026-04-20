@@ -12,6 +12,26 @@ log() {
   printf '[deploy-orchestrator] %s\n' "$*"
 }
 
+read_env_var_from_file() {
+  local key file raw value
+  key="$1"
+  file="$2"
+
+  if [[ ! -f "${file}" ]]; then
+    return 0
+  fi
+
+  raw="$(grep -m1 "^${key}=" "${file}" || true)"
+  if [[ -z "${raw}" ]]; then
+    return 0
+  fi
+
+  value="${raw#*=}"
+  value="${value%\"}"
+  value="${value#\"}"
+  printf '%s' "${value}"
+}
+
 detect_compose_file() {
   if [[ -f "docker-compose.yaml" ]]; then
     echo "docker-compose.yaml"
@@ -105,6 +125,10 @@ deploy_swarm() {
   fi
 
   run_ansible_secrets_if_configured
+
+  if [[ -z "${MONITORING_NETWORK_NAME:-}" ]]; then
+    MONITORING_NETWORK_NAME="$(read_env_var_from_file "MONITORING_NETWORK_NAME" "${ENV_FILE}")"
+  fi
 
   if [[ -z "${MONITORING_NETWORK_NAME:-}" ]]; then
     log "ERROR: MONITORING_NETWORK_NAME is not set"
