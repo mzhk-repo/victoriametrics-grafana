@@ -7,6 +7,46 @@ modules:
       preferred_ip_protocol: ip4
       follow_redirects: true
 
+  http_2xx_internal_koha_opac:
+    prober: http
+    timeout: 10s
+    http:
+      method: GET
+      preferred_ip_protocol: ip4
+      follow_redirects: true
+      headers:
+        Host: library.ldubgd.edu.ua
+
+  http_2xx_internal_koha_staff:
+    prober: http
+    timeout: 10s
+    http:
+      method: GET
+      preferred_ip_protocol: ip4
+      follow_redirects: true
+      headers:
+        Host: koha.ldubgd.edu.ua
+
+  http_2xx_internal_matomo:
+    prober: http
+    timeout: 10s
+    http:
+      method: GET
+      preferred_ip_protocol: ip4
+      follow_redirects: true
+      headers:
+        Host: matomo.ldubgd.edu.ua
+
+  http_2xx_internal_dspace:
+    prober: http
+    timeout: 10s
+    http:
+      method: GET
+      preferred_ip_protocol: ip4
+      follow_redirects: true
+      headers:
+        Host: repo.ldubgd.edu.ua
+
   http_tls:
     prober: http
     timeout: 10s

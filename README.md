@@ -260,8 +260,11 @@ curl -s http://127.0.0.1:3000/api/health
 | `mariadb-exporter` | `mariadb-exporter:9104` | `service=koha, component=db` |
 | `postgres-exporter` | `postgres-exporter:9187` | `service=dspace, component=db` |
 | `traefik` | `traefik:8082` | `service=traefik` |
-| `blackbox-koha-opac` | `https://biblio.fby.com.ua` | `service=koha, website=opac` |
-| `blackbox-koha-staff` | staff-URL | `service=koha, website=staff` |
+| `blackbox-koha-opac` | `http://traefik/` + `Host: library.ldubgd.edu.ua` | `service=koha, website=opac, probe_scope=internal` |
+| `blackbox-koha-staff` | `http://traefik/` + `Host: koha.ldubgd.edu.ua` | `service=koha, website=staff, probe_scope=internal` |
+| `blackbox-matomo` | `http://traefik/` + `Host: matomo.ldubgd.edu.ua` | `service=matomo, website=analytics, probe_scope=internal` |
+| `blackbox-dspace-ui` | `http://traefik/` + `Host: repo.ldubgd.edu.ua` | `service=dspace, website=ui, probe_scope=internal` |
+| `blackbox-dspace-api` | `http://traefik/server/` + `Host: repo.ldubgd.edu.ua` | `service=dspace, website=api, probe_scope=internal` |
 
 Всі метрики мають глобальний label `env=prod`.  
 Перегенерація конфігу: `./scripts/render-scrape-config.sh`  

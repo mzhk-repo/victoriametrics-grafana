@@ -5,12 +5,12 @@
 - `WebsiteHighLatency` (warning): `probe_duration_seconds > 2s`
 
 ## Що означає
-Blackbox Exporter не отримує коректну HTTP-відповідь 2xx або отримує надто повільну відповідь.
+Blackbox Exporter не отримує коректну HTTP-відповідь 2xx або отримує надто повільну відповідь. Поточні локальні probes перевіряють internal route `blackbox-exporter -> traefik -> service` з Host header відповідного public hostname, без виходу через Cloudflare edge.
 
 ## Дії
-1. Перевірити доступність сайтів вручну з браузера або `curl`.
-2. Перевірити DNS/SSL сертифікат та термін дії.
-3. Перевірити upstream (Koha/Apache/Plack) і логи реверс-проксі.
+1. Перевірити internal probe з `blackbox-exporter` до `http://traefik...` з потрібним Host header.
+2. Перевірити Traefik route/service labels і підключення `blackbox-exporter` до `proxy-net`.
+3. Перевірити upstream (Koha/Apache/Plack, DSpace, Matomo) і логи реверс-проксі.
 4. Якщо недоступний тільки один сайт, ізолювати проблему до конкретного endpoint.
 
 ## Перевірка відновлення

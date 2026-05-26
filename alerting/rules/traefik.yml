@@ -14,7 +14,7 @@ groups:
           runbook: docs/runbooks/monitoring-down.md
 
       - alert: TraefikHighLatency
-        expr: histogram_quantile(0.95, sum(rate(traefik_service_request_duration_seconds_bucket{job="traefik",env="prod"}[5m])) by (le)) > 5
+        expr: (histogram_quantile(0.95, sum(rate(traefik_service_request_duration_seconds_bucket{job="traefik",env="prod"}[5m])) by (le)) or vector(0)) > 5
         for: 5m
         labels:
           severity: warning

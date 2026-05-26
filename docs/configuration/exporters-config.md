@@ -55,8 +55,10 @@
 - Порт: внутрішній `:9115` (без публікації на host)
 - Конфіг: `blackbox/blackbox.yml`
 - Модулі:
-	- `http_2xx` — перевірка доступності (успіх тільки для HTTP 2xx)
-	- `http_tls` — перевірка HTTPS/TLS
+	- `http_2xx` — базова перевірка доступності (успіх тільки для HTTP 2xx)
+	- `http_tls` — базова перевірка HTTPS/TLS
+	- `http_2xx_internal_*` — internal probes через `http://traefik` з Host header для відповідного публічного hostname
+- `blackbox-exporter` підключений до `monitoring_net` і `proxy-net`, щоб перевіряти сервіси через internal Traefik route без hairpin через Cloudflare edge.
 - Scrape jobs у `victoria-metrics/scrape-config.yml`:
 	- `blackbox-koha-opac`
 	- `blackbox-koha-staff`
@@ -71,6 +73,7 @@
 	- `DSPACE_API_URL`
 	- `CLOUDFLARE_TUNNEL_METRICS_TARGET`
 	- `CLOUDFLARE_TUNNEL_NAME`
+- `KOHA_OPAC_URL`, `KOHA_STAFF_URL`, `MATOMO_URL`, `DSPACE_UI_URL`, `DSPACE_API_URL` використовуються як `public_instance`/`instance` labels для читабельних alert-ів; фактичний probe target лишається internal `http://traefik...`.
 
 ## Matomo DB Size Metric (Phase 6)
 - Скрипт: `scripts/collect-matomo-db-size.sh`

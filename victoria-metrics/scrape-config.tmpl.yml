@@ -85,18 +85,20 @@ scrape_configs:
     metrics_path: /probe
     params:
       module:
-        - http_2xx
+        - http_2xx_internal_koha_opac
     static_configs:
       - targets:
-          - __KOHA_OPAC_URL__
+          - http://traefik/
         labels:
           env: prod
           service: koha
           website: opac
+          probe_scope: internal
+          public_instance: __KOHA_OPAC_URL__
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
-      - source_labels: [__param_target]
+      - source_labels: [public_instance]
         target_label: instance
       - target_label: __address__
         replacement: blackbox-exporter:9115
@@ -105,18 +107,20 @@ scrape_configs:
     metrics_path: /probe
     params:
       module:
-        - http_2xx
+        - http_2xx_internal_koha_staff
     static_configs:
       - targets:
-          - __KOHA_STAFF_URL__
+          - http://traefik/
         labels:
           env: prod
           service: koha
           website: staff
+          probe_scope: internal
+          public_instance: __KOHA_STAFF_URL__
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
-      - source_labels: [__param_target]
+      - source_labels: [public_instance]
         target_label: instance
       - target_label: __address__
         replacement: blackbox-exporter:9115
@@ -125,18 +129,20 @@ scrape_configs:
     metrics_path: /probe
     params:
       module:
-        - http_tls
+        - http_2xx_internal_matomo
     static_configs:
       - targets:
-          - __MATOMO_URL__
+          - http://traefik/
         labels:
           env: prod
           service: matomo
           website: analytics
+          probe_scope: internal
+          public_instance: __MATOMO_URL__
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
-      - source_labels: [__param_target]
+      - source_labels: [public_instance]
         target_label: instance
       - target_label: __address__
         replacement: blackbox-exporter:9115
@@ -145,18 +151,20 @@ scrape_configs:
     metrics_path: /probe
     params:
       module:
-        - http_2xx
+        - http_2xx_internal_dspace
     static_configs:
       - targets:
-          - __DSPACE_UI_URL__
+          - http://traefik/
         labels:
           env: prod
           service: dspace
           website: ui
+          probe_scope: internal
+          public_instance: __DSPACE_UI_URL__
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
-      - source_labels: [__param_target]
+      - source_labels: [public_instance]
         target_label: instance
       - target_label: __address__
         replacement: blackbox-exporter:9115
@@ -165,18 +173,20 @@ scrape_configs:
     metrics_path: /probe
     params:
       module:
-        - http_2xx
+        - http_2xx_internal_dspace
     static_configs:
       - targets:
-          - __DSPACE_API_URL__
+          - http://traefik/server/
         labels:
           env: prod
           service: dspace
           website: api
+          probe_scope: internal
+          public_instance: __DSPACE_API_URL__
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
-      - source_labels: [__param_target]
+      - source_labels: [public_instance]
         target_label: instance
       - target_label: __address__
         replacement: blackbox-exporter:9115
