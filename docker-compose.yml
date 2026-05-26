@@ -82,6 +82,7 @@ services:
       - ./blackbox/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
     networks:
       - monitoring_net
+      - proxy-net
 
   mariadb-exporter:
     image: ${MARIADB_EXPORTER_IMAGE}

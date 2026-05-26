@@ -1017,7 +1017,7 @@ groups:
                 type: prometheus
                 uid: victoriametrics
               editorMode: code
-              expr: histogram_quantile(0.95, sum(rate(traefik_service_request_duration_seconds_bucket{job="traefik",env="prod"}[5m])) by (le))
+              expr: histogram_quantile(0.95, sum(rate(traefik_service_request_duration_seconds_bucket{job="traefik",env="prod"}[5m])) by (le)) or vector(0)
               instant: true
               intervalMs: 1000
               maxDataPoints: 43200

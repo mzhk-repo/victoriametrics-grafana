@@ -91,3 +91,15 @@
 - **Verification:** `grafana/provisioning/alerting/notification-policies.yml` успішно проходить YAML parse через PyYAML. Runtime reload/deploy Grafana не виконувався в межах цієї ітерації.
 - **Risks:** У backup-вікно notifications для `severity=critical` і `severity=warning` не надсилатимуться, але alert evaluation і стан alert instances продовжать працювати.
 - **Rollback:** Видалити `muteTimes.daily-backup-window` і `mute_time_intervals` з routes у `notification-policies.yml`, після чого повторно застосувати Grafana provisioning.
+
+## [2026-05-26] — Internal website probes and Traefik latency NoData fallback
+- **Context:** Локальні blackbox probes перевіряли public URL через Cloudflare edge і tunnel назад у той самий origin stack. Під час timeout до Cloudflare edge IP `188.114.96.11/188.114.97.11` сервіси лишалися доступними всередині Swarm, але Grafana отримувала `WebsiteDown`/`MatomoDown`/`DSpaceWebsiteDown` і latency alerts. Окремо `TraefikHighLatency` міг давати `DatasourceNoData`, коли histogram bucket series відсутні у вікні.
+- **Change:**
+- `blackbox-exporter` підключено до `proxy-net`, щоб він міг ходити до internal Traefik service.
+- Додано blackbox modules `http_2xx_internal_*` з Host header для Koha, Matomo і DSpace.
+- Website scrape jobs у `victoria-metrics/scrape-config.tmpl.yml` переведено на targets `http://traefik/` або `http://traefik/server/`; public URL з env лишається у labels `public_instance`/`instance` для читабельних alert-ів.
+- `TraefikHighLatency` у Grafana provisioning і Prometheus-style rule отримав fallback `or vector(0)`, щоб відсутність request duration buckets не ставала `DatasourceNoData`.
+- Оновлено документацію для blackbox probes, render script і website probe runbook.
+- **Verification:** YAML parse для `blackbox/blackbox.yml`, `victoria-metrics/scrape-config.tmpl.yml`, `docker-compose.yml`, `grafana/provisioning/alerting/alert-rules.yml` і `alerting/rules/traefik.yml` успішний; `blackbox_exporter --config.check` успішний; internal Traefik smoke checks для Koha OPAC/staff, Matomo, DSpace UI і DSpace API повернули `200 OK`; `git diff --check` успішний. Runtime deploy/reload ще не виконувався в межах цієї ітерації.
+- **Risks:** Internal probes більше не перевіряють Cloudflare edge availability; для public uptime потрібен окремий зовнішній моніторинг з незалежної мережі. Host headers у `blackbox/blackbox.yml` мають відповідати Traefik router hostnames.
+- **Rollback:** Повернути blackbox jobs на public URL targets, прибрати `proxy-net` з `blackbox-exporter`, видалити `http_2xx_internal_*` modules і повернути попередній Traefik latency expression.
