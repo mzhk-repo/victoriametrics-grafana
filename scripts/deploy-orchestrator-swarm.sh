@@ -174,8 +174,29 @@ ensure_swarm_overlay_network() {
   docker network create --driver overlay --attachable "${network_name}" >/dev/null
 }
 
+ensure_encrypted_external_swarm_overlay() {
+  local network_name scope driver options
+  network_name="$1"
+
+  if ! docker network inspect "${network_name}" >/dev/null 2>&1; then
+    log "ERROR: required SMTP2Graph network '${network_name}' does not exist"
+    log "Create it in SMTP2Graph IaC as an encrypted Swarm overlay before deploying monitoring."
+    exit 1
+  fi
+
+  scope="$(docker network inspect -f '{{.Scope}}' "${network_name}" 2>/dev/null || true)"
+  driver="$(docker network inspect -f '{{.Driver}}' "${network_name}" 2>/dev/null || true)"
+  options="$(docker network inspect -f '{{json .Options}}' "${network_name}" 2>/dev/null || true)"
+  if [[ "${scope}" != "swarm" || "${driver}" != "overlay" || "${options}" != *'"encrypted"'* ]]; then
+    log "ERROR: SMTP2Graph network '${network_name}' must be an encrypted swarm overlay (got ${driver}/${scope})."
+    exit 1
+  fi
+
+  log "Using encrypted external SMTP2Graph overlay '${network_name}'"
+}
+
 deploy_swarm() {
-  local compose_file swarm_file raw_manifest deploy_manifest scrape_config_file scrape_config_checksum_before scrape_config_checksum_after scrape_config_changed vm_service_name
+  local compose_file swarm_file raw_manifest deploy_manifest scrape_config_file scrape_config_checksum_before scrape_config_checksum_after scrape_config_changed vm_service_name smtp2graph_overlay_network
 
   compose_file="$(detect_compose_file)"
   swarm_file="docker-compose.swarm.yml"
@@ -217,6 +238,13 @@ deploy_swarm() {
   export MONITORING_NETWORK_NAME
   log "Using MONITORING_NETWORK_NAME=${MONITORING_NETWORK_NAME}"
   ensure_swarm_overlay_network "${MONITORING_NETWORK_NAME}"
+
+  smtp2graph_overlay_network="$(read_env_var_from_file "SMTP2GRAPH_OVERLAY_NETWORK" "${ENV_FILE}")"
+  if [[ -z "${smtp2graph_overlay_network}" ]]; then
+    log "ERROR: SMTP2GRAPH_OVERLAY_NETWORK is not set"
+    exit 1
+  fi
+  ensure_encrypted_external_swarm_overlay "${smtp2graph_overlay_network}"
 
   log "Initializing bind-mount directories"
   ORCHESTRATOR_ENV_FILE="${ENV_FILE}" bash scripts/init-volumes.sh

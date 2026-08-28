@@ -55,6 +55,7 @@
   - PostgreSQL Exporter
   - Traefik metrics endpoint
   - Blackbox Exporter (synthetic probes)
+  - SMTP2Graph gateway metrics через encrypted overlay; автономний SMTP/Graph synthetic probe публікує результат у Node Exporter textfile collector
 - Cloudflared: edge bridge для безпечного доступу до Grafana.
 
 ### Потоки даних
@@ -62,16 +63,17 @@
 2. VictoriaMetrics scrape-ить targets за `victoria-metrics/scrape-config.yml`.
 3. Grafana читає метрики через datasource `victoriametrics`.
 4. Alert rules виконуються Grafana Alerting і маршрутизуються за severity.
-5. Backup/restore скрипти оновлюють textfile metrics для додаткового моніторингу backup health.
+5. Backup/restore і SMTP2Graph synthetic скрипти оновлюють textfile metrics для додаткового моніторингу health.
 
 ## 6. Фізична/мережева архітектура
 ### Розміщення
-Всі компоненти працюють у Docker Compose на одному host VM.
+Production компоненти працюють у Docker Swarm на одному manager host VM; `docker-compose.yml` зберігається як локальний Compose-compatible manifest, а `docker-compose.swarm.yml` накладає Swarm-specific runtime policy.
 
 ### Мережі Docker
 - `monitoring_net` (internal stack network)
 - `kohanet` (external network для Koha/MariaDB інтеграції)
 - `dspacenet` (external network для DSpace/PostgreSQL інтеграції)
+- `smtp2graph_internal_enc` (external encrypted Swarm overlay для VictoriaMetrics scrape шлюзу SMTP2Graph). До неї підключено VictoriaMetrics, але не Grafana; gateway metrics порт `9464` не публікується на host.
 
 ### Host port policy
 Порти публікуються тільки на loopback interface (`127.0.0.1`).

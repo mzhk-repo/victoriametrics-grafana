@@ -1,0 +1,14 @@
+[Unit]
+Description=SMTP2Graph synthetic SMTP and Graph delivery probe
+Wants=network-online.target
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/victoriametrics-grafana
+Environment=SERVER_ENV=prod
+ExecStart=/opt/victoriametrics-grafana/scripts/run-smtp2graph-synthetic-probe.sh
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true

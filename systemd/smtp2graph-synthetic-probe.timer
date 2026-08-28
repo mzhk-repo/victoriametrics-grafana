@@ -1,0 +1,10 @@
+[Unit]
+Description=Run SMTP2Graph synthetic probe every 15 minutes
+
+[Timer]
+OnCalendar=*:0/15
+Persistent=true
+Unit=smtp2graph-synthetic-probe.service
+
+[Install]
+WantedBy=timers.target

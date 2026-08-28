@@ -21,6 +21,7 @@ services:
     networks:
       - monitoring_net
       - proxy-net
+      - smtp2graph_internal_enc
 
   node-exporter:
     image: ${NODE_EXPORTER_IMAGE}
@@ -203,4 +204,7 @@ networks:
     external: true
   matomonet:
     name: ${MATOMO_NETWORK_NAME:-matomo-analytics_matomonet}
+    external: true
+  smtp2graph_internal_enc:
+    name: ${SMTP2GRAPH_OVERLAY_NETWORK:?SMTP2GRAPH_OVERLAY_NETWORK is required}
     external: true

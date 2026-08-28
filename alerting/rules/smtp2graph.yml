@@ -1,0 +1,59 @@
+groups:
+  - name: smtp2graph-gateway
+    interval: 1m
+    rules:
+      - alert: SMTP2GraphMetricsDown
+        expr: (max(present_over_time(up{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway"}[2m])) or vector(0)) < 1
+        for: 2m
+        labels: {severity: critical, env: prod, service: smtp2graph, component: gateway}
+        annotations: {summary: SMTP2Graph metrics endpoint is unavailable, runbook: docs/runbooks/smtp2graph-gateway.md}
+      - alert: SMTP2GraphAuthFailuresWarning
+        expr: sum(increase(smtp2graph_smtp_auth_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="rejected"}[5m])) >= 5
+        for: 5m
+        labels: {severity: warning, env: prod, service: smtp2graph, component: gateway}
+        annotations: {summary: SMTP2Graph rejected at least 5 SMTP authentications in 5 minutes, runbook: docs/runbooks/smtp2graph-gateway.md}
+      - alert: SMTP2GraphAuthFailuresCritical
+        expr: sum(increase(smtp2graph_smtp_auth_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="rejected"}[5m])) >= 20
+        for: 5m
+        labels: {severity: critical, env: prod, service: smtp2graph, component: gateway}
+        annotations: {summary: SMTP2Graph rejected at least 20 SMTP authentications in 5 minutes, runbook: docs/runbooks/smtp2graph-gateway.md}
+      - alert: SMTP2GraphDeliveryFailuresHigh
+        expr: sum(increase(smtp2graph_delivery_attempts_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="failed"}[5m])) >= 3
+        for: 5m
+        labels: {severity: critical, env: prod, service: smtp2graph, component: gateway}
+        annotations: {summary: SMTP2Graph Graph delivery failed at least 3 times in 5 minutes, runbook: docs/runbooks/smtp2graph-gateway.md}
+      - alert: SMTP2GraphDeliveryRetriesHigh
+        expr: sum(increase(smtp2graph_delivery_attempts_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="retry"}[15m])) >= 10
+        for: 5m
+        labels: {severity: warning, env: prod, service: smtp2graph, component: gateway}
+        annotations: {summary: SMTP2Graph Graph delivery retried at least 10 times in 15 minutes, runbook: docs/runbooks/smtp2graph-gateway.md}
+      - alert: SMTP2GraphQueueUsageWarning
+        expr: (max(smtp2graph_storage_bytes{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway"}) / clamp_min(max(smtp2graph_storage_reject_threshold_bytes{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway"}) / 0.8, 1)) * 100 >= 60
+        for: 5m
+        labels: {severity: warning, env: prod, service: smtp2graph, component: gateway}
+        annotations: {summary: SMTP2Graph storage reached 60 percent of configured queue capacity, runbook: docs/runbooks/smtp2graph-gateway.md}
+      - alert: SMTP2GraphQueueUsageCritical
+        expr: (max(smtp2graph_storage_bytes{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway"}) / clamp_min(max(smtp2graph_storage_reject_threshold_bytes{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway"}) / 0.8, 1)) * 100 >= 80
+        for: 5m
+        labels: {severity: critical, env: prod, service: smtp2graph, component: gateway}
+        annotations: {summary: SMTP2Graph storage reached 80 percent of configured queue capacity, runbook: docs/runbooks/smtp2graph-gateway.md}
+      - alert: SMTP2GraphFailedQueueNotEmpty
+        expr: max(smtp2graph_queue_messages{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",state="failed"}) > 0
+        for: 5m
+        labels: {severity: warning, env: prod, service: smtp2graph, component: gateway}
+        annotations: {summary: SMTP2Graph failed queue contains one or more messages, runbook: docs/runbooks/smtp2graph-gateway.md}
+      - alert: SMTP2GraphTLSCertificateExpiringWarning
+        expr: (max(smtp2graph_tls_certificate_not_after_seconds{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway"}) - time()) / 86400 < 30
+        for: 15m
+        labels: {severity: warning, env: prod, service: smtp2graph, component: gateway}
+        annotations: {summary: SMTP2Graph TLS certificate expires in less than 30 days, runbook: docs/runbooks/smtp2graph-gateway.md}
+      - alert: SMTP2GraphTLSCertificateExpiringCritical
+        expr: (max(smtp2graph_tls_certificate_not_after_seconds{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway"}) - time()) / 86400 < 7
+        for: 15m
+        labels: {severity: critical, env: prod, service: smtp2graph, component: gateway}
+        annotations: {summary: SMTP2Graph TLS certificate expires in less than 7 days, runbook: docs/runbooks/smtp2graph-gateway.md}
+      - alert: SMTP2GraphSyntheticDeliveryFailed
+        expr: ((max(smtp2graph_synthetic_last_status{job="node-exporter",env="prod",service="smtp2graph"}) or vector(0)) * ((time() - (max(smtp2graph_synthetic_last_collect_timestamp{job="node-exporter",env="prod",service="smtp2graph"}) or vector(0))) < bool 1200)) < 1
+        for: 5m
+        labels: {severity: critical, env: prod, service: smtp2graph, component: synthetic}
+        annotations: {summary: SMTP2Graph synthetic delivery has failed or stopped reporting, runbook: docs/runbooks/smtp2graph-gateway.md}

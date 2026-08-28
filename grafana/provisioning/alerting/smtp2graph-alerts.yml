@@ -1,0 +1,219 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: smtp2graph-gateway-alerting
+    folder: KDI-P0
+    interval: 1m
+    rules:
+      - uid: smtp2graph-metrics-down
+        title: SMTP2GraphMetricsDown
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 180, to: 0}
+            datasourceUid: victoriametrics
+            model:
+              datasource: {type: prometheus, uid: victoriametrics}
+              editorMode: code
+              expr: (max(present_over_time(up{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway"}[2m])) or vector(0))
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            relativeTimeRange: {from: 0, to: 0}
+            datasourceUid: __expr__
+            model:
+              conditions: [{evaluator: {params: [1], type: lt}, operator: {type: and}, query: {params: [A]}, reducer: {params: [], type: last}, type: query}]
+              datasource: {type: __expr__, uid: __expr__}
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: Alerting
+        execErrState: Error
+        for: 2m
+        annotations: {summary: SMTP2Graph metrics endpoint is unavailable, runbook: docs/runbooks/smtp2graph-gateway.md}
+        labels: {severity: critical, env: prod, service: smtp2graph, component: gateway}
+
+      - uid: smtp2graph-auth-failures-warning
+        title: SMTP2GraphAuthFailuresWarning
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: victoriametrics
+            model: {datasource: {type: prometheus, uid: victoriametrics}, editorMode: code, expr: 'sum(increase(smtp2graph_smtp_auth_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="rejected"}[5m]))', instant: true, intervalMs: 1000, maxDataPoints: 43200, refId: A}
+          - refId: C
+            relativeTimeRange: {from: 0, to: 0}
+            datasourceUid: __expr__
+            model: {conditions: [{evaluator: {params: [5], type: gte}, operator: {type: and}, query: {params: [A]}, reducer: {params: [], type: last}, type: query}], datasource: {type: __expr__, uid: __expr__}, expression: A, intervalMs: 1000, maxDataPoints: 43200, refId: C, type: threshold}
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations: {summary: SMTP2Graph rejected at least 5 SMTP authentications in 5 minutes, runbook: docs/runbooks/smtp2graph-gateway.md}
+        labels: {severity: warning, env: prod, service: smtp2graph, component: gateway}
+
+      - uid: smtp2graph-auth-failures-critical
+        title: SMTP2GraphAuthFailuresCritical
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: victoriametrics
+            model: {datasource: {type: prometheus, uid: victoriametrics}, editorMode: code, expr: 'sum(increase(smtp2graph_smtp_auth_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="rejected"}[5m]))', instant: true, intervalMs: 1000, maxDataPoints: 43200, refId: A}
+          - refId: C
+            relativeTimeRange: {from: 0, to: 0}
+            datasourceUid: __expr__
+            model: {conditions: [{evaluator: {params: [20], type: gte}, operator: {type: and}, query: {params: [A]}, reducer: {params: [], type: last}, type: query}], datasource: {type: __expr__, uid: __expr__}, expression: A, intervalMs: 1000, maxDataPoints: 43200, refId: C, type: threshold}
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations: {summary: SMTP2Graph rejected at least 20 SMTP authentications in 5 minutes, runbook: docs/runbooks/smtp2graph-gateway.md}
+        labels: {severity: critical, env: prod, service: smtp2graph, component: gateway}
+
+      - uid: smtp2graph-delivery-failures-high
+        title: SMTP2GraphDeliveryFailuresHigh
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: victoriametrics
+            model: {datasource: {type: prometheus, uid: victoriametrics}, editorMode: code, expr: 'sum(increase(smtp2graph_delivery_attempts_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="failed"}[5m]))', instant: true, intervalMs: 1000, maxDataPoints: 43200, refId: A}
+          - refId: C
+            relativeTimeRange: {from: 0, to: 0}
+            datasourceUid: __expr__
+            model: {conditions: [{evaluator: {params: [3], type: gte}, operator: {type: and}, query: {params: [A]}, reducer: {params: [], type: last}, type: query}], datasource: {type: __expr__, uid: __expr__}, expression: A, intervalMs: 1000, maxDataPoints: 43200, refId: C, type: threshold}
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations: {summary: SMTP2Graph Graph delivery failed at least 3 times in 5 minutes, runbook: docs/runbooks/smtp2graph-gateway.md}
+        labels: {severity: critical, env: prod, service: smtp2graph, component: gateway}
+
+      - uid: smtp2graph-delivery-retries-high
+        title: SMTP2GraphDeliveryRetriesHigh
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 1200, to: 0}
+            datasourceUid: victoriametrics
+            model: {datasource: {type: prometheus, uid: victoriametrics}, editorMode: code, expr: 'sum(increase(smtp2graph_delivery_attempts_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="retry"}[15m]))', instant: true, intervalMs: 1000, maxDataPoints: 43200, refId: A}
+          - refId: C
+            relativeTimeRange: {from: 0, to: 0}
+            datasourceUid: __expr__
+            model: {conditions: [{evaluator: {params: [10], type: gte}, operator: {type: and}, query: {params: [A]}, reducer: {params: [], type: last}, type: query}], datasource: {type: __expr__, uid: __expr__}, expression: A, intervalMs: 1000, maxDataPoints: 43200, refId: C, type: threshold}
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations: {summary: SMTP2Graph Graph delivery retried at least 10 times in 15 minutes, runbook: docs/runbooks/smtp2graph-gateway.md}
+        labels: {severity: warning, env: prod, service: smtp2graph, component: gateway}
+
+      - uid: smtp2graph-queue-usage-warning
+        title: SMTP2GraphQueueUsageWarning
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: victoriametrics
+            model: {datasource: {type: prometheus, uid: victoriametrics}, editorMode: code, expr: '(max(smtp2graph_storage_bytes{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway"}) / clamp_min(max(smtp2graph_storage_reject_threshold_bytes{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway"}) / 0.8, 1)) * 100', instant: true, intervalMs: 1000, maxDataPoints: 43200, refId: A}
+          - refId: C
+            relativeTimeRange: {from: 0, to: 0}
+            datasourceUid: __expr__
+            model: {conditions: [{evaluator: {params: [60], type: gte}, operator: {type: and}, query: {params: [A]}, reducer: {params: [], type: last}, type: query}], datasource: {type: __expr__, uid: __expr__}, expression: A, intervalMs: 1000, maxDataPoints: 43200, refId: C, type: threshold}
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations: {summary: SMTP2Graph storage reached 60 percent of configured queue capacity, runbook: docs/runbooks/smtp2graph-gateway.md}
+        labels: {severity: warning, env: prod, service: smtp2graph, component: gateway}
+
+      - uid: smtp2graph-queue-usage-critical
+        title: SMTP2GraphQueueUsageCritical
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: victoriametrics
+            model: {datasource: {type: prometheus, uid: victoriametrics}, editorMode: code, expr: '(max(smtp2graph_storage_bytes{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway"}) / clamp_min(max(smtp2graph_storage_reject_threshold_bytes{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway"}) / 0.8, 1)) * 100', instant: true, intervalMs: 1000, maxDataPoints: 43200, refId: A}
+          - refId: C
+            relativeTimeRange: {from: 0, to: 0}
+            datasourceUid: __expr__
+            model: {conditions: [{evaluator: {params: [80], type: gte}, operator: {type: and}, query: {params: [A]}, reducer: {params: [], type: last}, type: query}], datasource: {type: __expr__, uid: __expr__}, expression: A, intervalMs: 1000, maxDataPoints: 43200, refId: C, type: threshold}
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations: {summary: SMTP2Graph storage reached 80 percent of configured queue capacity, runbook: docs/runbooks/smtp2graph-gateway.md}
+        labels: {severity: critical, env: prod, service: smtp2graph, component: gateway}
+
+      - uid: smtp2graph-failed-queue-not-empty
+        title: SMTP2GraphFailedQueueNotEmpty
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: victoriametrics
+            model: {datasource: {type: prometheus, uid: victoriametrics}, editorMode: code, expr: 'max(smtp2graph_queue_messages{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",state="failed"})', instant: true, intervalMs: 1000, maxDataPoints: 43200, refId: A}
+          - refId: C
+            relativeTimeRange: {from: 0, to: 0}
+            datasourceUid: __expr__
+            model: {conditions: [{evaluator: {params: [0], type: gt}, operator: {type: and}, query: {params: [A]}, reducer: {params: [], type: last}, type: query}], datasource: {type: __expr__, uid: __expr__}, expression: A, intervalMs: 1000, maxDataPoints: 43200, refId: C, type: threshold}
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations: {summary: SMTP2Graph failed queue contains one or more messages, runbook: docs/runbooks/smtp2graph-gateway.md}
+        labels: {severity: warning, env: prod, service: smtp2graph, component: gateway}
+
+      - uid: smtp2graph-tls-expiring-warning
+        title: SMTP2GraphTLSCertificateExpiringWarning
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 3600, to: 0}
+            datasourceUid: victoriametrics
+            model: {datasource: {type: prometheus, uid: victoriametrics}, editorMode: code, expr: '(max(smtp2graph_tls_certificate_not_after_seconds{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway"}) - time()) / 86400', instant: true, intervalMs: 1000, maxDataPoints: 43200, refId: A}
+          - refId: C
+            relativeTimeRange: {from: 0, to: 0}
+            datasourceUid: __expr__
+            model: {conditions: [{evaluator: {params: [30], type: lt}, operator: {type: and}, query: {params: [A]}, reducer: {params: [], type: last}, type: query}], datasource: {type: __expr__, uid: __expr__}, expression: A, intervalMs: 1000, maxDataPoints: 43200, refId: C, type: threshold}
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations: {summary: SMTP2Graph TLS certificate expires in less than 30 days, runbook: docs/runbooks/smtp2graph-gateway.md}
+        labels: {severity: warning, env: prod, service: smtp2graph, component: gateway}
+
+      - uid: smtp2graph-tls-expiring-critical
+        title: SMTP2GraphTLSCertificateExpiringCritical
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 3600, to: 0}
+            datasourceUid: victoriametrics
+            model: {datasource: {type: prometheus, uid: victoriametrics}, editorMode: code, expr: '(max(smtp2graph_tls_certificate_not_after_seconds{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway"}) - time()) / 86400', instant: true, intervalMs: 1000, maxDataPoints: 43200, refId: A}
+          - refId: C
+            relativeTimeRange: {from: 0, to: 0}
+            datasourceUid: __expr__
+            model: {conditions: [{evaluator: {params: [7], type: lt}, operator: {type: and}, query: {params: [A]}, reducer: {params: [], type: last}, type: query}], datasource: {type: __expr__, uid: __expr__}, expression: A, intervalMs: 1000, maxDataPoints: 43200, refId: C, type: threshold}
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations: {summary: SMTP2Graph TLS certificate expires in less than 7 days, runbook: docs/runbooks/smtp2graph-gateway.md}
+        labels: {severity: critical, env: prod, service: smtp2graph, component: gateway}
+
+      - uid: smtp2graph-synthetic-delivery-failed
+        title: SMTP2GraphSyntheticDeliveryFailed
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 1800, to: 0}
+            datasourceUid: victoriametrics
+            model: {datasource: {type: prometheus, uid: victoriametrics}, editorMode: code, expr: '((max(smtp2graph_synthetic_last_status{job="node-exporter",env="prod",service="smtp2graph"}) or vector(0)) * ((time() - (max(smtp2graph_synthetic_last_collect_timestamp{job="node-exporter",env="prod",service="smtp2graph"}) or vector(0))) < bool 1200))', instant: true, intervalMs: 1000, maxDataPoints: 43200, refId: A}
+          - refId: C
+            relativeTimeRange: {from: 0, to: 0}
+            datasourceUid: __expr__
+            model: {conditions: [{evaluator: {params: [1], type: lt}, operator: {type: and}, query: {params: [A]}, reducer: {params: [], type: last}, type: query}], datasource: {type: __expr__, uid: __expr__}, expression: A, intervalMs: 1000, maxDataPoints: 43200, refId: C, type: threshold}
+        noDataState: Alerting
+        execErrState: Error
+        for: 5m
+        annotations: {summary: SMTP2Graph synthetic delivery has failed or stopped reporting, runbook: docs/runbooks/smtp2graph-gateway.md}
+        labels: {severity: critical, env: prod, service: smtp2graph, component: synthetic}

@@ -33,6 +33,7 @@ bash scripts/check-internal-ports-policy.sh
 - Основний Swarm orchestrator для CI/CD.
 - Перевіряє env-файл, оновлює Swarm secrets через Ansible якщо задано `INFRA_REPO_PATH`.
 - Створює/перевіряє overlay network `MONITORING_NETWORK_NAME`.
+- Перед deploy перевіряє, що `SMTP2GRAPH_OVERLAY_NETWORK` уже існує як encrypted external Swarm overlay; monitoring deploy не створює і не змінює gateway network.
 - Перед deploy запускає `init-volumes.sh` і `render-scrape-config.sh`.
 - Рендерить immutable Swarm secrets через `render-versioned-env-secret.sh` і дописує generated `*_SECRET_NAME` у тимчасовий decrypted env-файл.
 - Рендерить merged manifest через `docker compose --env-file ... config` і виконує `docker stack deploy`.
@@ -73,7 +74,7 @@ ORCHESTRATOR_ENV_FILE=/tmp/env.decrypted bash scripts/init-volumes.sh
 #### Бізнес-логіка
 
 - Рендерить `victoria-metrics/scrape-config.yml` із template.
-- Читає `KOHA_OPAC_URL`, `KOHA_STAFF_URL`, `MATOMO_URL`, `DSPACE_UI_URL`, `DSPACE_API_URL`, `CLOUDFLARE_TUNNEL_METRICS_TARGET`, `CLOUDFLARE_TUNNEL_NAME` через `ORCHESTRATOR_ENV_FILE` або `--env-file` без `source`.
+- Читає `KOHA_OPAC_URL`, `KOHA_STAFF_URL`, `MATOMO_URL`, `DSPACE_UI_URL`, `DSPACE_API_URL`, `CLOUDFLARE_TUNNEL_METRICS_TARGET`, `CLOUDFLARE_TUNNEL_NAME` і `SMTP2GRAPH_METRICS_TARGET` через `ORCHESTRATOR_ENV_FILE` або `--env-file` без `source`.
 - Website blackbox jobs рендеряться як internal probes до `http://traefik...`; public URL з env лишається в labels `public_instance`/`instance` для alert context.
 - Пише результат у tmp-файл, звіряє з поточним конфігом через `cmp`/checksum і не перезаписує файл, якщо змін немає.
 
@@ -83,6 +84,12 @@ ORCHESTRATOR_ENV_FILE=/tmp/env.decrypted bash scripts/init-volumes.sh
 ORCHESTRATOR_ENV_FILE=/tmp/env.decrypted bash scripts/render-scrape-config.sh
 bash scripts/render-scrape-config.sh --env-file .env
 ```
+
+### `scripts/run-smtp2graph-synthetic-probe.sh`
+
+- Autonomous production probe: отримує SOPS env через `/dev/shm`, надсилає один STARTTLS/AUTH synthetic message і підтверджує приріст Graph delivery counter у VictoriaMetrics.
+- Пише тільки агреговані status/timestamp metrics у `NODE_EXPORTER_TEXTFILE_DIR`; не друкує credentials, SMTP payload, recipient чи server responses.
+- systemd units у `systemd/smtp2graph-synthetic-probe.*` запускають його кожні 15 хвилин. Інсталяція unit-файлів у `/etc/systemd/system` є окремою privileged production operation за `docs/runbooks/smtp2graph-gateway.md`.
 
 ### `scripts/render-versioned-env-secret.sh`
 

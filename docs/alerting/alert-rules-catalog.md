@@ -56,6 +56,17 @@
 | DataVolumesRunoutPredictedWarning | warning | 15m | `docs/runbooks/disk-space-low.md` |
 | DataVolumesReadLatencyWarning | warning | 5m | `docs/runbooks/disk-space-low.md` |
 | DataVolumesWriteLatencyWarning | warning | 5m | `docs/runbooks/disk-space-low.md` |
+| SMTP2GraphMetricsDown | critical | 2m | `docs/runbooks/smtp2graph-gateway.md` |
+| SMTP2GraphAuthFailuresWarning | warning | 5m | `docs/runbooks/smtp2graph-gateway.md` |
+| SMTP2GraphAuthFailuresCritical | critical | 5m | `docs/runbooks/smtp2graph-gateway.md` |
+| SMTP2GraphDeliveryFailuresHigh | critical | 5m | `docs/runbooks/smtp2graph-gateway.md` |
+| SMTP2GraphDeliveryRetriesHigh | warning | 5m | `docs/runbooks/smtp2graph-gateway.md` |
+| SMTP2GraphQueueUsageWarning | warning | 5m | `docs/runbooks/smtp2graph-gateway.md` |
+| SMTP2GraphQueueUsageCritical | critical | 5m | `docs/runbooks/smtp2graph-gateway.md` |
+| SMTP2GraphFailedQueueNotEmpty | warning | 5m | `docs/runbooks/smtp2graph-gateway.md` |
+| SMTP2GraphTLSCertificateExpiringWarning | warning | 15m | `docs/runbooks/smtp2graph-gateway.md` |
+| SMTP2GraphTLSCertificateExpiringCritical | critical | 15m | `docs/runbooks/smtp2graph-gateway.md` |
+| SMTP2GraphSyntheticDeliveryFailed | critical | 5m | `docs/runbooks/smtp2graph-gateway.md` |
 
 ## Synthetic Smoke Rule
 
@@ -75,6 +86,7 @@
   - `grafana/provisioning/alerting/website-alerts.yml`
   - `grafana/provisioning/alerting/cloudflare-alerts.yml`
   - `grafana/provisioning/alerting/data-volumes.yml`
+  - `grafana/provisioning/alerting/smtp2graph-alerts.yml`
 - Rule catalog (Prometheus-style):
   - `alerting/rules/host.yml`
   - `alerting/rules/containers.yml`
@@ -83,3 +95,4 @@
   - `alerting/rules/monitoring.yml`
   - `alerting/rules/cloudflare.yml`
   - `alerting/rules/data-volumes.yml`
+  - `alerting/rules/smtp2graph.yml`

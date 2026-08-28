@@ -6,6 +6,10 @@ services:
     mem_limit: !reset null
     memswap_limit: !reset null
     ports: !reset []
+    networks: !override
+      - monitoring_net
+      - proxy-net
+      - smtp2graph_internal_enc
     deploy:
       replicas: 1
       restart_policy:
@@ -156,10 +160,6 @@ services:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
       VM_DATASOURCE_URL: ${VM_DATASOURCE_URL}
-    networks:
-      - monitoring_net
-      - proxy-net
-      - smtp2graph_internal_enc
     secrets:
       - source: grafana_admin_password
         target: grafana_admin_password
@@ -209,4 +209,3 @@ networks:
   smtp2graph_internal_enc:
     external: true
     name: ${SMTP2GRAPH_OVERLAY_NETWORK:?SMTP2GRAPH_OVERLAY_NETWORK is required}
-
