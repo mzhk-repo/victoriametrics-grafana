@@ -156,6 +156,10 @@ services:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
       VM_DATASOURCE_URL: ${VM_DATASOURCE_URL}
+    networks:
+      - monitoring_net
+      - proxy-net
+      - smtp2graph_internal_enc
     secrets:
       - source: grafana_admin_password
         target: grafana_admin_password
@@ -202,3 +206,7 @@ networks:
   monitoring_net:
     external: true
     name: ${MONITORING_NETWORK_NAME}
+  smtp2graph_internal_enc:
+    external: true
+    name: ${SMTP2GRAPH_OVERLAY_NETWORK:?SMTP2GRAPH_OVERLAY_NETWORK is required}
+
