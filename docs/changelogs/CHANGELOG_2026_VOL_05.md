@@ -1,3 +1,11 @@
+## [2026-08-28] — Grafana alert delivery: migrate from MS365 SMTP to Google SMTP
+
+- **Context:** Alert delivery must use Google Workspace/Gmail SMTP instead of the MS365 relay.
+- **Change:** Replaced the `MS365_*` alert-delivery contract with `GOOGLE_*` in Compose, Swarm, Grafana contact points and versioned Docker-secret rendering. Default endpoint is `smtp.gmail.com:587`; Grafana enforces `MandatoryStartTLS`. Updated operational and product documentation.
+- **Verification:** Static Compose rendering and configuration checks are required before deployment; the Google App Password remains in the encrypted runtime env and is never committed.
+- **Risks:** Google SMTP submission requires a permitted account and App Password (or an approved Workspace SMTP relay). Existing encrypted env files must be migrated from `MS365_*` to `GOOGLE_*` before deployment.
+- **Rollback:** Restore the previous `MS365_*` contract and redeploy Grafana.
+
 ## [2026-05-08] — VictoriaMetrics backup: fix autonomous env loading, rclone upload, and alert age logic
 - **Context:** `SERVER_ENV=prod bash scripts/backup-victoriametrics-volume.sh` падав під час завантаження decrypted `env.prod.enc` з `/dev/shm`: Bash `source` ламався на dotenv-значенні `MARIADB_EXPORTER_DSN` з `tcp(...)`.
 - **Change:**

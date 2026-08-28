@@ -233,7 +233,7 @@ curl -s http://127.0.0.1:3000/api/health
 | **Images** | `VICTORIAMETRICS_IMAGE`, `GRAFANA_IMAGE`, … | Версії образів (pin за digest для P0) |
 | **VictoriaMetrics** | `VM_RETENTION_PERIOD`, `VM_DATA_DIR` | Retention, шлях до volume |
 | **Grafana** | `GRAFANA_ADMIN_PASSWORD`, `GRAFANA_AUTO_ASSIGN_ORG_ROLE` | Адмін-доступ, дефолтна роль |
-| **SMTP** | `MS365_SMTP_HOST`, `MS365_ALERT_EMAIL_TO` | Email-alerts через MS365 |
+| **SMTP** | `GOOGLE_SMTP_HOST`, `GOOGLE_ALERT_EMAIL_TO` | Email-alerts через Google SMTP |
 | **Ingress** | `CLOUDFLARE_GRAFANA_HOSTNAME`, `PROXY_NET_NETWORK_NAME` | Ім'я домену Grafana і зовнішня мережа Traefik |
 | **DB Exporters** | `MARIADB_EXPORTER_PASSWORD`, `POSTGRES_EXPORTER_DSN` | Credentials для DB |
 

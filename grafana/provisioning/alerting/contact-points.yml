@@ -7,7 +7,7 @@ contactPoints:
       - uid: critical-email
         type: email
         settings:
-          addresses: ${MS365_ALERT_EMAIL_TO}
+          addresses: ${GOOGLE_ALERT_EMAIL_TO}
           singleEmail: true
         disableResolveMessage: false
 
@@ -17,6 +17,6 @@ contactPoints:
       - uid: warning-email
         type: email
         settings:
-          addresses: ${MS365_ALERT_EMAIL_TO}
+          addresses: ${GOOGLE_ALERT_EMAIL_TO}
           singleEmail: true
         disableResolveMessage: false

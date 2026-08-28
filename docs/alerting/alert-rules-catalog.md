@@ -1,8 +1,8 @@
 # Alert Rules Catalog (Phase 4)
 
 ## Routing
-- `severity=critical` -> `critical-email-telegram` (MS365 Email + Telegram)
-- `severity=warning` -> `warning-email` (MS365 Email)
+- `severity=critical` -> `critical-email-telegram` (Google SMTP email + Telegram)
+- `severity=warning` -> `warning-email` (Google SMTP email)
 
 ## Важливо перед production
 - У `grafana/provisioning/alerting/contact-points.yml` задані safe placeholders (`alerts@example.com`, тестовий bot token/chat id), щоб Grafana не падала на порожніх значеннях.

@@ -2,7 +2,7 @@
 
 ## Scope
 
-VictoriaMetrics scrapes `smtp2graph_gateway:9464/metrics` only through the external encrypted Swarm overlay `smtp2graph_internal_enc`. Grafana alerts are delivered through the independent MS365 SMTP relay; do not route them through SMTP2Graph.
+VictoriaMetrics scrapes `smtp2graph_gateway:9464/metrics` only through the external encrypted Swarm overlay `smtp2graph_internal_enc`. Grafana alerts are delivered through independent Google SMTP; do not route them through SMTP2Graph.
 
 ## First checks
 

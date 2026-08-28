@@ -75,6 +75,23 @@ ss -tlnp | grep -E '8428|3000|9100'
 
 ## Ручні дії поза цим репозиторієм
 
+### Google SMTP для Grafana alerts
+
+У SOPS-encrypted runtime env задайте Google Workspace/Gmail SMTP submission:
+
+```env
+GRAFANA_SMTP_ENABLED=true
+GOOGLE_SMTP_HOST=smtp.gmail.com
+GOOGLE_SMTP_PORT=587
+GOOGLE_SMTP_USER=monitoring@example.com
+GOOGLE_SMTP_PASSWORD=REPLACE_WITH_GOOGLE_APP_PASSWORD
+GOOGLE_ALERT_EMAIL_FROM=monitoring@example.com
+GOOGLE_ALERT_FROM_NAME=KDI Monitoring
+GOOGLE_ALERT_EMAIL_TO=ops@example.com,devops@example.com
+```
+
+Для Gmail/Google Workspace SMTP використовуйте App Password облікового запису з увімкненою двоетапною перевіркою. Не додавайте пароль у `.env.example`, GitHub secrets або аргументи команд. Перед Swarm deploy видаліть застарілі `MS365_*` ключі з encrypted env; `scripts/render-versioned-env-secret.sh` створить `GOOGLE_SMTP_PASSWORD_SECRET_NAME` для Docker Secret.
+
 ### Cloudflare Tunnel для Grafana
 
 Cloudflare Tunnel працює в окремому зовнішньому edge stack. У цьому репозиторії `cloudflared` контейнер не запускається і не повертається в `docker-compose.yml`.

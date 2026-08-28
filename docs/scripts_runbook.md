@@ -98,7 +98,7 @@ bash scripts/render-scrape-config.sh --env-file .env
 - Створює Docker secrets з hash-based назвами для Swarm runtime secrets.
 - Рендерить:
   `GRAFANA_ADMIN_PASSWORD_SECRET_NAME`,
-  `MS365_SMTP_PASSWORD_SECRET_NAME`,
+  `GOOGLE_SMTP_PASSWORD_SECRET_NAME`,
   `MARIADB_EXPORTER_PASSWORD_SECRET_NAME`,
   `MATOMO_MARIADB_EXPORTER_PASSWORD_SECRET_NAME`.
 - Читає значення з `ORCHESTRATOR_ENV_FILE` або `--env-file` без `source`.
