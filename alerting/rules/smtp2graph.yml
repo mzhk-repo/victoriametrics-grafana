@@ -8,22 +8,22 @@ groups:
         labels: {severity: critical, env: prod, service: smtp2graph, component: gateway}
         annotations: {summary: SMTP2Graph metrics endpoint is unavailable, runbook: docs/runbooks/smtp2graph-gateway.md}
       - alert: SMTP2GraphAuthFailuresWarning
-        expr: sum(increase(smtp2graph_smtp_auth_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="rejected"}[5m])) >= 5
+        expr: (sum(increase(smtp2graph_smtp_auth_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="rejected"}[5m])) or vector(0)) >= 5
         for: 5m
         labels: {severity: warning, env: prod, service: smtp2graph, component: gateway}
         annotations: {summary: SMTP2Graph rejected at least 5 SMTP authentications in 5 minutes, runbook: docs/runbooks/smtp2graph-gateway.md}
       - alert: SMTP2GraphAuthFailuresCritical
-        expr: sum(increase(smtp2graph_smtp_auth_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="rejected"}[5m])) >= 20
+        expr: (sum(increase(smtp2graph_smtp_auth_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="rejected"}[5m])) or vector(0)) >= 20
         for: 5m
         labels: {severity: critical, env: prod, service: smtp2graph, component: gateway}
         annotations: {summary: SMTP2Graph rejected at least 20 SMTP authentications in 5 minutes, runbook: docs/runbooks/smtp2graph-gateway.md}
       - alert: SMTP2GraphDeliveryFailuresHigh
-        expr: sum(increase(smtp2graph_delivery_attempts_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="failed"}[5m])) >= 3
+        expr: (sum(increase(smtp2graph_delivery_attempts_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="failed"}[5m])) or vector(0)) >= 3
         for: 5m
         labels: {severity: critical, env: prod, service: smtp2graph, component: gateway}
         annotations: {summary: SMTP2Graph Graph delivery failed at least 3 times in 5 minutes, runbook: docs/runbooks/smtp2graph-gateway.md}
       - alert: SMTP2GraphDeliveryRetriesHigh
-        expr: sum(increase(smtp2graph_delivery_attempts_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="retry"}[15m])) >= 10
+        expr: (sum(increase(smtp2graph_delivery_attempts_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="retry"}[15m])) or vector(0)) >= 10
         for: 5m
         labels: {severity: warning, env: prod, service: smtp2graph, component: gateway}
         annotations: {summary: SMTP2Graph Graph delivery retried at least 10 times in 15 minutes, runbook: docs/runbooks/smtp2graph-gateway.md}

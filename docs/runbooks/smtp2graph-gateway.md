@@ -16,19 +16,12 @@ VictoriaMetrics scrapes `smtp2graph_gateway:9464/metrics` only through the exter
 - Delivery failures/retries: validate Graph service health and gateway logs without exposing mail content, recipient addresses or tokens.
 - Queue threshold or failed queue: stop new client onboarding if capacity is critical; follow the SMTP2Graph failed-payload retention procedure separately and never delete queue payloads as an alert reaction.
 - TLS expiry: renew and reconcile the TLS Secret through SMTP2Graph IaC, then verify the exported `not_after` timestamp after rollout.
-- Synthetic failure: run `SERVER_ENV=prod bash scripts/run-smtp2graph-synthetic-probe.sh` only when the recipient allowlist and source CIDR are confirmed. It emits no message content or credentials.
+- Synthetic failure: inspect `monitoring_smtp2graph-synthetic-runner` logs and its textfile metric. The runner emits no message content or credentials.
 
-## Synthetic timer
+## Synthetic runner
 
-Install the reviewed units only on the production manager after the SOPS env keys are populated:
+`monitoring_smtp2graph-synthetic-runner` is a single Swarm service on `monitoring_net` and `smtp2graph_internal_enc`. It runs immediately after start and then every 15 minutes, reaches VictoriaMetrics as `http://victoriametrics:8428` without a host-published port, and writes only aggregate status/timestamp textfile metrics as UID/GID `1000:1000`.
 
-```bash
-install -m 0644 systemd/smtp2graph-synthetic-probe.service /etc/systemd/system/
-install -m 0644 systemd/smtp2graph-synthetic-probe.timer /etc/systemd/system/
-systemctl daemon-reload
-systemctl enable --now smtp2graph-synthetic-probe.timer
-```
-
-Required encrypted env keys: `SMTP2GRAPH_METRICS_TARGET`, `VM_SYNTHETIC_QUERY_URL`, `SMTP2GRAPH_SYNTHETIC_HOST`, `SMTP2GRAPH_SYNTHETIC_PORT`, `SMTP2GRAPH_SYNTHETIC_TLS_SERVER_NAME`, `SMTP2GRAPH_SYNTHETIC_USER`, `SMTP2GRAPH_SYNTHETIC_PASSWORD`, `SMTP2GRAPH_SYNTHETIC_SENDER`, `SMTP2GRAPH_SYNTHETIC_RECIPIENT`, `SMTP2GRAPH_SYNTHETIC_DELIVERY_TIMEOUT_SECONDS` and `NODE_EXPORTER_TEXTFILE_DIR`. The password remains only in SOPS; never place it in a unit file or shell arguments.
+Required encrypted env keys: `SMTP2GRAPH_SYNTHETIC_HOST`, `SMTP2GRAPH_SYNTHETIC_PORT`, `SMTP2GRAPH_SYNTHETIC_TLS_SERVER_NAME`, `SMTP2GRAPH_SYNTHETIC_USER`, `SMTP2GRAPH_SYNTHETIC_PASSWORD`, `SMTP2GRAPH_SYNTHETIC_SENDER`, `SMTP2GRAPH_SYNTHETIC_RECIPIENT` and `SMTP2GRAPH_SYNTHETIC_DELIVERY_TIMEOUT_SECONDS`. The password is rendered as a versioned Docker Secret; never place it in a service environment variable or shell arguments.
 
 The queue-capacity expressions derive maximum capacity from the exported rejection threshold and the reviewed gateway setting `QUEUE_REJECT_THRESHOLD_PERCENT=80`. Update both alert and dashboard expressions with the gateway change if that setting is changed.

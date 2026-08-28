@@ -188,6 +188,48 @@ services:
         constraints:
           - node.labels.app_zone == manager
 
+  smtp2graph-synthetic-runner:
+    image: ${SMTP2GRAPH_SYNTHETIC_RUNNER_IMAGE:-python:3.12-alpine}
+    user: "1000:1000"
+    environment:
+      SMTP2GRAPH_SYNTHETIC_HOST: ${SMTP2GRAPH_SYNTHETIC_HOST}
+      SMTP2GRAPH_SYNTHETIC_PORT: ${SMTP2GRAPH_SYNTHETIC_PORT}
+      SMTP2GRAPH_SYNTHETIC_TLS_SERVER_NAME: ${SMTP2GRAPH_SYNTHETIC_TLS_SERVER_NAME}
+      SMTP2GRAPH_SYNTHETIC_USER: ${SMTP2GRAPH_SYNTHETIC_USER}
+      SMTP2GRAPH_SYNTHETIC_SENDER: ${SMTP2GRAPH_SYNTHETIC_SENDER}
+      SMTP2GRAPH_SYNTHETIC_RECIPIENT: ${SMTP2GRAPH_SYNTHETIC_RECIPIENT}
+      SMTP2GRAPH_SYNTHETIC_DELIVERY_TIMEOUT_SECONDS: ${SMTP2GRAPH_SYNTHETIC_DELIVERY_TIMEOUT_SECONDS:-120}
+      VM_SYNTHETIC_QUERY_URL: http://victoriametrics:8428
+      NODE_EXPORTER_TEXTFILE_DIR: /metrics
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        export SMTP2GRAPH_SYNTHETIC_PASSWORD="$(cat /run/secrets/smtp2graph_synthetic_password)"
+        while true; do
+          python3 /app/smtp2graph-synthetic-probe.py || true
+          sleep 900
+        done
+    volumes:
+      - ${NODE_EXPORTER_TEXTFILE_DIR:-./.data/node-exporter-textfile}:/metrics
+      - ./scripts/smtp2graph-synthetic-probe.py:/app/smtp2graph-synthetic-probe.py:ro
+    networks: !override
+      - monitoring_net
+      - smtp2graph_internal_enc
+    secrets:
+      - source: smtp2graph_synthetic_password
+        target: smtp2graph_synthetic_password
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      placement:
+        constraints:
+          - node.labels.app_zone == manager
+
 secrets:
   grafana_admin_password:
     external: true
@@ -201,6 +243,9 @@ secrets:
   matomo_mariadb_exporter_password:
     external: true
     name: ${MATOMO_MARIADB_EXPORTER_PASSWORD_SECRET_NAME}
+  smtp2graph_synthetic_password:
+    external: true
+    name: ${SMTP2GRAPH_SYNTHETIC_PASSWORD_SECRET_NAME}
 
 networks:
   monitoring_net:

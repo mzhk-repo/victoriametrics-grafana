@@ -85,11 +85,11 @@ ORCHESTRATOR_ENV_FILE=/tmp/env.decrypted bash scripts/render-scrape-config.sh
 bash scripts/render-scrape-config.sh --env-file .env
 ```
 
-### `scripts/run-smtp2graph-synthetic-probe.sh`
+### SMTP2Graph synthetic runner
 
-- Autonomous production probe: отримує SOPS env через `/dev/shm`, надсилає один STARTTLS/AUTH synthetic message і підтверджує приріст Graph delivery counter у VictoriaMetrics.
+- `monitoring_smtp2graph-synthetic-runner` запускається в Swarm кожні 15 хвилин через внутрішній loop, а не через host systemd.
+- Runner підключений до `monitoring_net` і encrypted `smtp2graph_internal_enc`, запитує `victoriametrics:8428` за service DNS і читає SMTP password лише з versioned Docker Secret.
 - Пише тільки агреговані status/timestamp metrics у `NODE_EXPORTER_TEXTFILE_DIR`; не друкує credentials, SMTP payload, recipient чи server responses.
-- systemd units у `systemd/smtp2graph-synthetic-probe.*` запускають його кожні 15 хвилин. Інсталяція unit-файлів у `/etc/systemd/system` є окремою privileged production operation за `docs/runbooks/smtp2graph-gateway.md`.
 
 ### `scripts/render-versioned-env-secret.sh`
 

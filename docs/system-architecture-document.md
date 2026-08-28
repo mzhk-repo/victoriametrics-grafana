@@ -55,7 +55,7 @@
   - PostgreSQL Exporter
   - Traefik metrics endpoint
   - Blackbox Exporter (synthetic probes)
-  - SMTP2Graph gateway metrics через encrypted overlay; автономний SMTP/Graph synthetic probe публікує результат у Node Exporter textfile collector
+  - SMTP2Graph gateway metrics через encrypted overlay; Swarm synthetic runner публікує результат у Node Exporter textfile collector
 - Cloudflared: edge bridge для безпечного доступу до Grafana.
 
 ### Потоки даних
@@ -63,7 +63,7 @@
 2. VictoriaMetrics scrape-ить targets за `victoria-metrics/scrape-config.yml`.
 3. Grafana читає метрики через datasource `victoriametrics`.
 4. Alert rules виконуються Grafana Alerting і маршрутизуються за severity.
-5. Backup/restore і SMTP2Graph synthetic скрипти оновлюють textfile metrics для додаткового моніторингу health.
+5. Backup/restore scripts і SMTP2Graph Swarm runner оновлюють textfile metrics для додаткового моніторингу health.
 
 ## 6. Фізична/мережева архітектура
 ### Розміщення

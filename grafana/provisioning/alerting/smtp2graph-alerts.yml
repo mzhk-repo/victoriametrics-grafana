@@ -45,7 +45,7 @@ groups:
           - refId: A
             relativeTimeRange: {from: 600, to: 0}
             datasourceUid: victoriametrics
-            model: {datasource: {type: prometheus, uid: victoriametrics}, editorMode: code, expr: 'sum(increase(smtp2graph_smtp_auth_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="rejected"}[5m]))', instant: true, intervalMs: 1000, maxDataPoints: 43200, refId: A}
+            model: {datasource: {type: prometheus, uid: victoriametrics}, editorMode: code, expr: '(sum(increase(smtp2graph_smtp_auth_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="rejected"}[5m])) or vector(0))', instant: true, intervalMs: 1000, maxDataPoints: 43200, refId: A}
           - refId: C
             relativeTimeRange: {from: 0, to: 0}
             datasourceUid: __expr__
@@ -63,7 +63,7 @@ groups:
           - refId: A
             relativeTimeRange: {from: 600, to: 0}
             datasourceUid: victoriametrics
-            model: {datasource: {type: prometheus, uid: victoriametrics}, editorMode: code, expr: 'sum(increase(smtp2graph_smtp_auth_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="rejected"}[5m]))', instant: true, intervalMs: 1000, maxDataPoints: 43200, refId: A}
+            model: {datasource: {type: prometheus, uid: victoriametrics}, editorMode: code, expr: '(sum(increase(smtp2graph_smtp_auth_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="rejected"}[5m])) or vector(0))', instant: true, intervalMs: 1000, maxDataPoints: 43200, refId: A}
           - refId: C
             relativeTimeRange: {from: 0, to: 0}
             datasourceUid: __expr__
@@ -81,7 +81,7 @@ groups:
           - refId: A
             relativeTimeRange: {from: 600, to: 0}
             datasourceUid: victoriametrics
-            model: {datasource: {type: prometheus, uid: victoriametrics}, editorMode: code, expr: 'sum(increase(smtp2graph_delivery_attempts_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="failed"}[5m]))', instant: true, intervalMs: 1000, maxDataPoints: 43200, refId: A}
+            model: {datasource: {type: prometheus, uid: victoriametrics}, editorMode: code, expr: '(sum(increase(smtp2graph_delivery_attempts_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="failed"}[5m])) or vector(0))', instant: true, intervalMs: 1000, maxDataPoints: 43200, refId: A}
           - refId: C
             relativeTimeRange: {from: 0, to: 0}
             datasourceUid: __expr__
@@ -99,7 +99,7 @@ groups:
           - refId: A
             relativeTimeRange: {from: 1200, to: 0}
             datasourceUid: victoriametrics
-            model: {datasource: {type: prometheus, uid: victoriametrics}, editorMode: code, expr: 'sum(increase(smtp2graph_delivery_attempts_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="retry"}[15m]))', instant: true, intervalMs: 1000, maxDataPoints: 43200, refId: A}
+            model: {datasource: {type: prometheus, uid: victoriametrics}, editorMode: code, expr: '(sum(increase(smtp2graph_delivery_attempts_total{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",result="retry"}[15m])) or vector(0))', instant: true, intervalMs: 1000, maxDataPoints: 43200, refId: A}
           - refId: C
             relativeTimeRange: {from: 0, to: 0}
             datasourceUid: __expr__
