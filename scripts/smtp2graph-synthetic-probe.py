@@ -136,6 +136,7 @@ smtp2graph_synthetic_last_status{{env="prod",service="smtp2graph"}} {status}
     with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=config.textfile_dir, delete=False) as handle:
         handle.write(payload)
         temp_name = handle.name
+    os.chmod(temp_name, 0o644)
     os.replace(temp_name, config.textfile_dir / "smtp2graph_synthetic.prom")
 
 

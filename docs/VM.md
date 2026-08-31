@@ -49,7 +49,7 @@
 
 ### Контракт роботи:
 
-1. **Тестова відправка:** Раз на 15 хвилин надсилає тестовий лист через шлюз Smtp2Graph (порт 2525, STARTTLS) на дозволену поштову скриньку з `NONPRODUCTION_RECIPIENT_ALLOWLIST`.
+1. **Тестова відправка:** Раз на 15 хвилин надсилає тестовий лист через шлюз Smtp2Graph (порт 2525, STARTTLS) на дозволену поштову скриньку з `NONPRODUCTION_RECIPIENT_ALLOWLIST`. У Swarm `SMTP2GRAPH_SYNTHETIC_HOST` має бути DNS alias шлюзу в encrypted overlay (поточний: `gateway`), а не `127.0.0.1`: loopback у runner вказує на сам runner.
 2. **Перевірка:** Перевіряє успішне завершення SMTP-сесії (код `250 OK`) або зміну лічильника `smtp2graph_graph_delivery_success_total`.
 
 ## 6. Зведені автотести (2 скрипти)

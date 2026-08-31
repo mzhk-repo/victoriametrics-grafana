@@ -45,9 +45,11 @@ class SyntheticProbeTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             config = probe.config_from_env(self.env(directory))
             probe.write_metrics(config, 0, 0, 123)
-            metrics = (Path(directory) / "smtp2graph_synthetic.prom").read_text(encoding="utf-8")
+            metrics_path = Path(directory) / "smtp2graph_synthetic.prom"
+            metrics = metrics_path.read_text(encoding="utf-8")
             self.assertIn("smtp2graph_synthetic_last_status", metrics)
             self.assertNotIn(config.password, metrics)
+            self.assertEqual(metrics_path.stat().st_mode & 0o777, 0o644)
 
     def test_invalid_port_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:

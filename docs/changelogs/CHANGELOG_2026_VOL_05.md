@@ -1,3 +1,19 @@
+## [2026-08-31] — SMTP2Graph synthetic runner: expose textfile metrics to Node Exporter
+
+- **Context:** Synthetic delivery succeeded, but Node Exporter logged `permission denied` for `smtp2graph_synthetic.prom`, so VictoriaMetrics and Grafana could not observe the result.
+- **Change:** The runner now sets mode `0644` on its temporary Prometheus textfile before the atomic rename. Added a unit assertion for the final file mode and documented the collector-read requirement.
+- **Verification:** Unit test validates the metric content remains secret-free and the published textfile is world-readable; runtime validation requires redeploying the runner and checking Node Exporter no longer logs textfile permission errors.
+- **Risks:** The textfile contains only aggregate status and timestamps; mode `0644` does not expose credentials or message content.
+- **Rollback:** Revert the mode change; Node Exporter ingestion of this textfile will fail again for non-owner users.
+
+## [2026-08-28] — SMTP2Graph synthetic runner: use gateway overlay alias
+
+- **Context:** Swarm synthetic runner received `SMTP2GRAPH_SYNTHETIC_HOST=127.0.0.1` and failed with `ConnectionRefusedError`; loopback resolves to the runner itself, not SMTP2Graph.
+- **Change:** Set the example contract to the encrypted-overlay gateway DNS alias `gateway` and document the required separation between SMTP TCP host (`gateway`) and TLS server name (`smtp-int.pinokew.buzz`).
+- **Verification:** From `monitoring_smtp2graph-synthetic-runner`, `gateway` resolved to `10.0.8.2` and a TCP connection to `gateway:2525` succeeded.
+- **Risks:** The encrypted runtime env must be updated and the Swarm stack redeployed; the result still depends on valid STARTTLS, authentication and recipient policy at the gateway.
+- **Rollback:** Restore the prior runtime host only if an alternate reachable SMTP endpoint is intentionally configured.
+
 ## [2026-08-28] — Grafana alert delivery: migrate from MS365 SMTP to Google SMTP
 
 - **Context:** Alert delivery must use Google Workspace/Gmail SMTP instead of the MS365 relay.
