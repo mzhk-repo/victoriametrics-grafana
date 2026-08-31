@@ -92,6 +92,15 @@ bash scripts/render-scrape-config.sh --env-file .env
 - `SMTP2GRAPH_SYNTHETIC_HOST` має бути DNS alias SMTP2Graph gateway у encrypted overlay (поточний: `gateway`); `127.0.0.1` вказує на runner і призводить до `ConnectionRefusedError`.
 - Пише тільки агреговані status/timestamp metrics у `NODE_EXPORTER_TEXTFILE_DIR`; не друкує credentials, SMTP payload, recipient чи server responses.
 
+#### Test execution
+
+```bash
+bash tests/test-observability-config.sh
+tests/integration/test-synthetic-and-metrics.sh
+```
+
+`test-synthetic-and-metrics.sh` запускає одну allowlisted synthetic email-перевірку через активний Swarm runner; виконуйте його лише на Swarm manager з доступом до Docker daemon.
+
 ### `scripts/render-versioned-env-secret.sh`
 
 #### Бізнес-логіка

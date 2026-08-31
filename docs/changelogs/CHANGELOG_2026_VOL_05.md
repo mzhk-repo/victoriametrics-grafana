@@ -1,3 +1,27 @@
+## [2026-08-31] — Observability config test: portable fixed-string checks
+
+- **Context:** Hosts without ripgrep could not run `tests/test-observability-config.sh`.
+- **Change:** Replaced the test's `rg -Fq` calls with a `grep -Fq` helper, retaining fixed-string matching semantics without an extra dependency.
+- **Verification:** Shell syntax and the observability configuration test pass.
+- **Risks:** GNU/POSIX-compatible `grep` remains required, as it is a standard base-system dependency.
+- **Rollback:** Restore ripgrep checks only if ripgrep becomes an explicit required runtime dependency.
+
+## [2026-08-31] — SMTP2Graph live synthetic and metrics integration test
+
+- **Context:** Static configuration checks did not verify the deployed Swarm runner, internal VictoriaMetrics scrape path, or the external SMTP alert receiver contract together.
+- **Change:** Added `tests/integration/test-synthetic-and-metrics.sh`. It runs the probe inside the active Swarm runner with its password read only from Docker Secret, waits for `up{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway"} == 1` through runner-to-VictoriaMetrics service DNS, and validates Grafana's Google SMTP email receiver and routing payload contract without sending an alert.
+- **Verification:** The integration test completed a live synthetic delivery; VictoriaMetrics returned one SMTP2Graph gateway `up` series with value `1`. Configuration and unit tests pass.
+- **Risks:** The test sends one allowlisted synthetic email and requires Docker daemon access on the Swarm manager; it must not be run against an unapproved recipient or from an untrusted host.
+- **Rollback:** Remove the integration script; no runtime configuration or persistent data is changed by the test.
+
+## [2026-08-31] — SMTP2Graph test commands in scripts runbook
+
+- **Context:** Operators needed a single documented location for both static observability validation and the live SMTP2Graph synthetic smoke test.
+- **Change:** Added `bash tests/test-observability-config.sh` and `tests/integration/test-synthetic-and-metrics.sh` to the SMTP2Graph section of `docs/scripts_runbook.md`, including the Swarm-manager and allowlisted-email requirement for the live test.
+- **Verification:** Commands and referenced test paths were checked locally.
+- **Risks:** The live test sends one synthetic email and needs Docker daemon access.
+- **Rollback:** Remove the two command references from the runbook.
+
 ## [2026-08-31] — SMTP2Graph synthetic alert: derive freshness from runner schedule
 
 - **Context:** A fixed 1,200-second freshness threshold caused false alerts when an environment used a longer synthetic-delivery interval.

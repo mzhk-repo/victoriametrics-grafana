@@ -4,6 +4,10 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+contains_fixed() {
+  grep -Fq -- "$1" "$2"
+}
+
 python3 - <<'PY'
 import json
 from pathlib import Path
@@ -35,23 +39,23 @@ SMTP2GRAPH_METRICS_TARGET=smtp2graph_gateway:9464
 EOF
 
 ORCHESTRATOR_ENV_FILE="$fixture" bash scripts/render-scrape-config.sh --output-file "$output_file" >/dev/null
-rg -Fq 'job_name: smtp2graph-gateway' "$output_file"
-rg -Fq 'smtp2graph_gateway:9464' "$output_file"
-rg -Fq 'service: smtp2graph' "$output_file"
-rg -Fq 'networks: !override' docker-compose.swarm.yml
-rg -Fq 'smtp2graph-synthetic-runner:' docker-compose.swarm.yml
-rg -Fq 'VM_SYNTHETIC_QUERY_URL: http://victoriametrics:8428' docker-compose.swarm.yml
-rg -Fq 'smtp2graph_synthetic_password' docker-compose.swarm.yml
-rg -Fq 'SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS: ${SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS:-900}' docker-compose.swarm.yml
-rg -Fq 'SMTP2GRAPH_SYNTHETIC_FRESHNESS_GRACE_SECONDS: ${SMTP2GRAPH_SYNTHETIC_FRESHNESS_GRACE_SECONDS:-300}' docker-compose.swarm.yml
-rg -Fq 'sleep "$${SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS}"' docker-compose.swarm.yml
-rg -Fq 'SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS=900' .env.example
-rg -Fq 'SMTP2GRAPH_SYNTHETIC_FRESHNESS_GRACE_SECONDS=300' .env.example
-rg -Fq 'service="host",exported_service="smtp2graph"' alerting/rules/smtp2graph.yml
-rg -Fq 'service="host",exported_service="smtp2graph"' grafana/provisioning/alerting/smtp2graph-alerts.yml
-rg -Fq 'smtp2graph_synthetic_freshness_threshold_seconds' alerting/rules/smtp2graph.yml
-rg -Fq 'smtp2graph_synthetic_freshness_threshold_seconds' grafana/provisioning/alerting/smtp2graph-alerts.yml
-if sed -n '/  grafana:/,/    secrets:/p' docker-compose.swarm.yml | rg -Fq 'smtp2graph_internal_enc'; then
+contains_fixed 'job_name: smtp2graph-gateway' "$output_file"
+contains_fixed 'smtp2graph_gateway:9464' "$output_file"
+contains_fixed 'service: smtp2graph' "$output_file"
+contains_fixed 'networks: !override' docker-compose.swarm.yml
+contains_fixed 'smtp2graph-synthetic-runner:' docker-compose.swarm.yml
+contains_fixed 'VM_SYNTHETIC_QUERY_URL: http://victoriametrics:8428' docker-compose.swarm.yml
+contains_fixed 'smtp2graph_synthetic_password' docker-compose.swarm.yml
+contains_fixed 'SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS: ${SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS:-900}' docker-compose.swarm.yml
+contains_fixed 'SMTP2GRAPH_SYNTHETIC_FRESHNESS_GRACE_SECONDS: ${SMTP2GRAPH_SYNTHETIC_FRESHNESS_GRACE_SECONDS:-300}' docker-compose.swarm.yml
+contains_fixed 'sleep "$${SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS}"' docker-compose.swarm.yml
+contains_fixed 'SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS=900' .env.example
+contains_fixed 'SMTP2GRAPH_SYNTHETIC_FRESHNESS_GRACE_SECONDS=300' .env.example
+contains_fixed 'service="host",exported_service="smtp2graph"' alerting/rules/smtp2graph.yml
+contains_fixed 'service="host",exported_service="smtp2graph"' grafana/provisioning/alerting/smtp2graph-alerts.yml
+contains_fixed 'smtp2graph_synthetic_freshness_threshold_seconds' alerting/rules/smtp2graph.yml
+contains_fixed 'smtp2graph_synthetic_freshness_threshold_seconds' grafana/provisioning/alerting/smtp2graph-alerts.yml
+if sed -n '/  grafana:/,/    secrets:/p' docker-compose.swarm.yml | grep -Fq 'smtp2graph_internal_enc'; then
   echo 'Grafana must not join the SMTP2Graph overlay' >&2
   exit 1
 fi
