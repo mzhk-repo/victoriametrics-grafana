@@ -53,7 +53,7 @@ groups:
         labels: {severity: critical, env: prod, service: smtp2graph, component: gateway}
         annotations: {summary: SMTP2Graph TLS certificate expires in less than 7 days, runbook: docs/runbooks/smtp2graph-gateway.md}
       - alert: SMTP2GraphSyntheticDeliveryFailed
-        expr: ((max(smtp2graph_synthetic_last_status{job="node-exporter",env="prod",service="smtp2graph"}) or vector(0)) * ((time() - (max(smtp2graph_synthetic_last_collect_timestamp{job="node-exporter",env="prod",service="smtp2graph"}) or vector(0))) < bool 1200)) < 1
+        expr: ((max(smtp2graph_synthetic_last_status{job="node-exporter",env="prod",service="host",exported_service="smtp2graph"}) or vector(0)) * ((time() - (max(smtp2graph_synthetic_last_collect_timestamp{job="node-exporter",env="prod",service="host",exported_service="smtp2graph"}) or vector(0))) < bool 1200)) < 1
         for: 5m
         labels: {severity: critical, env: prod, service: smtp2graph, component: synthetic}
         annotations: {summary: SMTP2Graph synthetic delivery has failed or stopped reporting, runbook: docs/runbooks/smtp2graph-gateway.md}

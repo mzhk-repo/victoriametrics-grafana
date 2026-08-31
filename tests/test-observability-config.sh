@@ -42,6 +42,8 @@ rg -Fq 'networks: !override' docker-compose.swarm.yml
 rg -Fq 'smtp2graph-synthetic-runner:' docker-compose.swarm.yml
 rg -Fq 'VM_SYNTHETIC_QUERY_URL: http://victoriametrics:8428' docker-compose.swarm.yml
 rg -Fq 'smtp2graph_synthetic_password' docker-compose.swarm.yml
+rg -Fq 'service="host",exported_service="smtp2graph"' alerting/rules/smtp2graph.yml
+rg -Fq 'service="host",exported_service="smtp2graph"' grafana/provisioning/alerting/smtp2graph-alerts.yml
 if sed -n '/  grafana:/,/    secrets:/p' docker-compose.swarm.yml | rg -Fq 'smtp2graph_internal_enc'; then
   echo 'Grafana must not join the SMTP2Graph overlay' >&2
   exit 1

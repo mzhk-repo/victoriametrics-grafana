@@ -1,3 +1,11 @@
+## [2026-08-31] — SMTP2Graph synthetic alert: align Node Exporter labels
+
+- **Context:** Synthetic textfile metrics were ingested successfully, but Node Exporter's static target labels overrode `service="smtp2graph"` with `service="host"`, preserving the original as `exported_service="smtp2graph"`; the alert and dashboard query returned no data.
+- **Change:** Updated synthetic alert rules and the SMTP2Graph dashboard to match `service="host", exported_service="smtp2graph"`. Added regression checks and documented the label transformation.
+- **Verification:** Live VictoriaMetrics query returned `smtp2graph_synthetic_last_status=1` with the new matcher labels.
+- **Risks:** Any future change to Node Exporter target labels must update the synthetic alert/dashboard matchers together.
+- **Rollback:** Restore the prior label matchers only if the Node Exporter scrape target stops defining `service="host"`.
+
 ## [2026-08-31] — SMTP2Graph synthetic runner: expose textfile metrics to Node Exporter
 
 - **Context:** Synthetic delivery succeeded, but Node Exporter logged `permission denied` for `smtp2graph_synthetic.prom`, so VictoriaMetrics and Grafana could not observe the result.

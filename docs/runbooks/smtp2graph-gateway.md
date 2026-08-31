@@ -26,4 +26,6 @@ Required encrypted env keys: `SMTP2GRAPH_SYNTHETIC_HOST`, `SMTP2GRAPH_SYNTHETIC_
 
 `SMTP2GRAPH_SYNTHETIC_HOST` is the SMTP2Graph Swarm DNS alias on `smtp2graph_internal_enc` (currently `gateway`), while `SMTP2GRAPH_SYNTHETIC_TLS_SERVER_NAME` remains the gateway certificate name (currently `smtp-int.pinokew.buzz`). Never use `127.0.0.1` for the host: inside the runner it refers to the runner itself, not the gateway.
 
+Synthetic textfile metrics are scraped through Node Exporter, whose target labels set `service="host"`; the metric's original `service="smtp2graph"` is preserved as `exported_service="smtp2graph"`. Queries for synthetic status must use both labels.
+
 The queue-capacity expressions derive maximum capacity from the exported rejection threshold and the reviewed gateway setting `QUEUE_REJECT_THRESHOLD_PERCENT=80`. Update both alert and dashboard expressions with the gateway change if that setting is changed.
