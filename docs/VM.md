@@ -50,7 +50,8 @@
 ### Контракт роботи:
 
 1. **Тестова відправка:** Надсилає тестовий лист через шлюз Smtp2Graph (порт 2525, STARTTLS) на дозволену поштову скриньку з `NONPRODUCTION_RECIPIENT_ALLOWLIST` через інтервал `SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS` (default `900`, мінімум `60`). У Swarm `SMTP2GRAPH_SYNTHETIC_HOST` має бути DNS alias шлюзу в encrypted overlay (поточний: `gateway`), а не `127.0.0.1`: loopback у runner вказує на сам runner.
-2. **Перевірка:** Перевіряє успішне завершення SMTP-сесії (код `250 OK`) або зміну лічильника `smtp2graph_graph_delivery_success_total`.
+2. **Freshness alert:** Runner експортує `smtp2graph_synthetic_freshness_threshold_seconds`, обчислений як `SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS + SMTP2GRAPH_SYNTHETIC_FRESHNESS_GRACE_SECONDS` (default grace `300`). Правило алерту використовує цю метрику, тому не має окремого захардкодженого порогу.
+3. **Перевірка:** Перевіряє успішне завершення SMTP-сесії (код `250 OK`) і зростання лічильника `smtp2graph_delivery_attempts_total{result="succeeded"}`.
 
 ## 6. Зведені автотести (2 скрипти)
 

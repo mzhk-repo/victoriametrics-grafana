@@ -87,7 +87,7 @@ bash scripts/render-scrape-config.sh --env-file .env
 
 ### SMTP2Graph synthetic runner
 
-- `monitoring_smtp2graph-synthetic-runner` запускається в Swarm через внутрішній loop, а не через host systemd; інтервал задає `SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS` (default `900`, мінімум `60`).
+- `monitoring_smtp2graph-synthetic-runner` запускається в Swarm через внутрішній loop, а не через host systemd; інтервал задає `SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS` (default `900`, мінімум `60`). Freshness-поріг алерту runner експортує автоматично як інтервал + `SMTP2GRAPH_SYNTHETIC_FRESHNESS_GRACE_SECONDS` (default `300`).
 - Runner підключений до `monitoring_net` і encrypted `smtp2graph_internal_enc`, запитує `victoriametrics:8428` за service DNS і читає SMTP password лише з versioned Docker Secret.
 - `SMTP2GRAPH_SYNTHETIC_HOST` має бути DNS alias SMTP2Graph gateway у encrypted overlay (поточний: `gateway`); `127.0.0.1` вказує на runner і призводить до `ConnectionRefusedError`.
 - Пише тільки агреговані status/timestamp metrics у `NODE_EXPORTER_TEXTFILE_DIR`; не друкує credentials, SMTP payload, recipient чи server responses.

@@ -201,6 +201,7 @@ services:
       SMTP2GRAPH_SYNTHETIC_RECIPIENT: ${SMTP2GRAPH_SYNTHETIC_RECIPIENT}
       SMTP2GRAPH_SYNTHETIC_DELIVERY_TIMEOUT_SECONDS: ${SMTP2GRAPH_SYNTHETIC_DELIVERY_TIMEOUT_SECONDS:-120}
       SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS: ${SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS:-900}
+      SMTP2GRAPH_SYNTHETIC_FRESHNESS_GRACE_SECONDS: ${SMTP2GRAPH_SYNTHETIC_FRESHNESS_GRACE_SECONDS:-300}
       VM_SYNTHETIC_QUERY_URL: http://victoriametrics:8428
       NODE_EXPORTER_TEXTFILE_DIR: /metrics
     entrypoint:
@@ -218,6 +219,12 @@ services:
           echo "ERROR: SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS must be at least 60" >&2
           exit 1
         fi
+        case "$${SMTP2GRAPH_SYNTHETIC_FRESHNESS_GRACE_SECONDS}" in
+          ''|*[!0-9]*)
+            echo "ERROR: SMTP2GRAPH_SYNTHETIC_FRESHNESS_GRACE_SECONDS must be a non-negative integer" >&2
+            exit 1
+            ;;
+        esac
         while true; do
           python3 /app/smtp2graph-synthetic-probe.py || true
           sleep "$${SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS}"

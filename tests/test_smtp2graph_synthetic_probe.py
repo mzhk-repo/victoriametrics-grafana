@@ -27,6 +27,8 @@ class SyntheticProbeTest(unittest.TestCase):
             "VM_SYNTHETIC_QUERY_URL": "http://127.0.0.1:8428",
             "NODE_EXPORTER_TEXTFILE_DIR": directory,
             "SMTP2GRAPH_SYNTHETIC_DELIVERY_TIMEOUT_SECONDS": "5",
+            "SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS": "900",
+            "SMTP2GRAPH_SYNTHETIC_FRESHNESS_GRACE_SECONDS": "300",
         }
 
     def test_success_requires_delivery_counter_increment(self):
@@ -48,6 +50,7 @@ class SyntheticProbeTest(unittest.TestCase):
             metrics_path = Path(directory) / "smtp2graph_synthetic.prom"
             metrics = metrics_path.read_text(encoding="utf-8")
             self.assertIn("smtp2graph_synthetic_last_status", metrics)
+            self.assertIn("smtp2graph_synthetic_freshness_threshold_seconds{env=\"prod\",service=\"smtp2graph\"} 1200", metrics)
             self.assertNotIn(config.password, metrics)
             self.assertEqual(metrics_path.stat().st_mode & 0o777, 0o644)
 
@@ -55,6 +58,13 @@ class SyntheticProbeTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             env = self.env(directory)
             env["SMTP2GRAPH_SYNTHETIC_PORT"] = "70000"
+            with self.assertRaises(ValueError):
+                probe.config_from_env(env)
+
+    def test_invalid_freshness_grace_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            env = self.env(directory)
+            env["SMTP2GRAPH_SYNTHETIC_FRESHNESS_GRACE_SECONDS"] = "-1"
             with self.assertRaises(ValueError):
                 probe.config_from_env(env)
 

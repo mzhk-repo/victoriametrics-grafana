@@ -1,3 +1,11 @@
+## [2026-08-31] — SMTP2Graph synthetic alert: derive freshness from runner schedule
+
+- **Context:** A fixed 1,200-second freshness threshold caused false alerts when an environment used a longer synthetic-delivery interval.
+- **Change:** The runner now exports `smtp2graph_synthetic_freshness_threshold_seconds`, calculated as `SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS + SMTP2GRAPH_SYNTHETIC_FRESHNESS_GRACE_SECONDS`; the grace default is `300` seconds. Both VictoriaMetrics and Grafana alert rules consume the exported threshold.
+- **Verification:** Unit and configuration tests cover threshold emission, input validation, and both alert definitions.
+- **Risks:** A grace period that is too small can alert during normal delivery or scrape delay; an excessive one delays detection.
+- **Rollback:** Remove the threshold metric use and restore a fixed alert threshold only if all environments return to a common interval.
+
 ## [2026-08-31] — SMTP2Graph synthetic runner: configurable delivery interval
 
 - **Context:** The runner had a hardcoded 15-minute interval, preventing per-environment tuning of synthetic email frequency.

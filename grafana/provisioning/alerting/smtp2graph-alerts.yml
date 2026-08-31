@@ -207,7 +207,7 @@ groups:
           - refId: A
             relativeTimeRange: {from: 1800, to: 0}
             datasourceUid: victoriametrics
-            model: {datasource: {type: prometheus, uid: victoriametrics}, editorMode: code, expr: '((max(smtp2graph_synthetic_last_status{job="node-exporter",env="prod",service="host",exported_service="smtp2graph"}) or vector(0)) * ((time() - (max(smtp2graph_synthetic_last_collect_timestamp{job="node-exporter",env="prod",service="host",exported_service="smtp2graph"}) or vector(0))) < bool 1200))', instant: true, intervalMs: 1000, maxDataPoints: 43200, refId: A}
+            model: {datasource: {type: prometheus, uid: victoriametrics}, editorMode: code, expr: '((max(smtp2graph_synthetic_last_status{job="node-exporter",env="prod",service="host",exported_service="smtp2graph"}) or vector(0)) * ((time() - (max(smtp2graph_synthetic_last_collect_timestamp{job="node-exporter",env="prod",service="host",exported_service="smtp2graph"}) or vector(0))) < bool (max(smtp2graph_synthetic_freshness_threshold_seconds{job="node-exporter",env="prod",service="host",exported_service="smtp2graph"}) or vector(0))))', instant: true, intervalMs: 1000, maxDataPoints: 43200, refId: A}
           - refId: C
             relativeTimeRange: {from: 0, to: 0}
             datasourceUid: __expr__

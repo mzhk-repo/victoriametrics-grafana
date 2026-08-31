@@ -45,6 +45,8 @@ class Config:
     query_url: str
     textfile_dir: Path
     delivery_timeout_seconds: int
+    interval_seconds: int
+    freshness_grace_seconds: int
 
 
 def config_from_env(env: dict[str, str]) -> Config:
@@ -54,10 +56,12 @@ def config_from_env(env: dict[str, str]) -> Config:
     try:
         port = int(env["SMTP2GRAPH_SYNTHETIC_PORT"])
         timeout = int(env.get("SMTP2GRAPH_SYNTHETIC_DELIVERY_TIMEOUT_SECONDS", "120"))
+        interval = int(env.get("SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS", "900"))
+        freshness_grace = int(env.get("SMTP2GRAPH_SYNTHETIC_FRESHNESS_GRACE_SECONDS", "300"))
     except ValueError as exc:
-        raise ValueError("synthetic probe port and timeout must be integers") from exc
-    if not 1 <= port <= 65535 or timeout < 1:
-        raise ValueError("synthetic probe port or timeout is out of range")
+        raise ValueError("synthetic probe numeric settings must be integers") from exc
+    if not 1 <= port <= 65535 or timeout < 1 or interval < 60 or freshness_grace < 0:
+        raise ValueError("synthetic probe numeric setting is out of range")
     query_url = env["VM_SYNTHETIC_QUERY_URL"].rstrip("/")
     if not query_url.startswith(("http://", "https://")):
         raise ValueError("VM_SYNTHETIC_QUERY_URL must use http:// or https://")
@@ -72,6 +76,8 @@ def config_from_env(env: dict[str, str]) -> Config:
         query_url=query_url,
         textfile_dir=Path(env["NODE_EXPORTER_TEXTFILE_DIR"]),
         delivery_timeout_seconds=timeout,
+        interval_seconds=interval,
+        freshness_grace_seconds=freshness_grace,
     )
 
 
@@ -132,6 +138,9 @@ smtp2graph_synthetic_last_collect_timestamp{{env="prod",service="smtp2graph"}} {
 # HELP smtp2graph_synthetic_last_status Last SMTP2Graph synthetic delivery status (1=success, 0=failure).
 # TYPE smtp2graph_synthetic_last_status gauge
 smtp2graph_synthetic_last_status{{env="prod",service="smtp2graph"}} {status}
+# HELP smtp2graph_synthetic_freshness_threshold_seconds Maximum permitted age of a synthetic result before it is considered stale.
+# TYPE smtp2graph_synthetic_freshness_threshold_seconds gauge
+smtp2graph_synthetic_freshness_threshold_seconds{{env="prod",service="smtp2graph"}} {config.interval_seconds + config.freshness_grace_seconds}
 '''
     with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=config.textfile_dir, delete=False) as handle:
         handle.write(payload)
