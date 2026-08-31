@@ -31,11 +31,11 @@ bash scripts/check-internal-ports-policy.sh
 #### Бізнес-логіка
 
 - Основний Swarm orchestrator для CI/CD.
-- Перевіряє env-файл, оновлює Swarm secrets через Ansible якщо задано `INFRA_REPO_PATH`.
+- Підтримує CLI-аргументи (`--env-file`, `--deploy`, `--apply`, `--check`) та завантаження розшифрованого середовища у `/dev/shm`.
 - Створює/перевіряє overlay network `MONITORING_NETWORK_NAME`.
 - Перед deploy перевіряє, що `SMTP2GRAPH_OVERLAY_NETWORK` уже існує як encrypted external Swarm overlay; monitoring deploy не створює і не змінює gateway network.
 - Перед deploy запускає `init-volumes.sh` і `render-scrape-config.sh`.
-- Рендерить immutable Swarm secrets через `render-versioned-env-secret.sh` і дописує generated `*_SECRET_NAME` у тимчасовий decrypted env-файл.
+- Рендерить immutable Swarm secrets через `render-versioned-env-secret.sh` напряму в пам'яті (`/dev/shm`) і дописує generated `*_SECRET_NAME` у тимчасовий decrypted env-файл.
 - Рендерить merged manifest через `docker compose --env-file ... config` і виконує `docker stack deploy`.
 
 #### Manual execution
