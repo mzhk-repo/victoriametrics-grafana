@@ -188,6 +188,7 @@ cleanup_deploy_artifacts() {
   if [[ -n "${deploy_manifest:-}" && -f "${deploy_manifest}" ]]; then
     rm -f "${deploy_manifest}"
   fi
+  cleanup_autonomous_env
 }
 
 deploy_swarm() {

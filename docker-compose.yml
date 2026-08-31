@@ -192,20 +192,20 @@ services:
 
 networks:
   monitoring_net:
-    name: ${MONITORING_NETWORK_NAME}
+    name: ${MONITORING_NETWORK_NAME:-monitoring_net}
     driver: bridge
   kohanet:
-    name: ${KOHANET_NETWORK_NAME}
+    name: ${KOHANET_NETWORK_NAME:-kohanet}
     external: true
   dspacenet:
-    name: ${DSPACENET_NETWORK_NAME}
+    name: ${DSPACENET_NETWORK_NAME:-dspacenet}
     external: true
   proxy-net:
-    name: ${PROXY_NET_NETWORK_NAME}
+    name: ${PROXY_NET_NETWORK_NAME:-proxy-net}
     external: true
   matomonet:
     name: ${MATOMO_NETWORK_NAME:-matomo-analytics_matomonet}
     external: true
   smtp2graph_internal_enc:
-    name: ${SMTP2GRAPH_OVERLAY_NETWORK:?SMTP2GRAPH_OVERLAY_NETWORK is required}
+    name: ${SMTP2GRAPH_OVERLAY_NETWORK:-smtp2graph_internal_enc}
     external: true
