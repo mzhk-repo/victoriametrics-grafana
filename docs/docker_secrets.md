@@ -1,53 +1,93 @@
-# **План переведення деплою на автономну матеріалізацію Docker Secrets без Ansible**
+# Автономна матеріалізація Docker Secrets у стеку VictoriaMetrics + Grafana
 
-## **Мета**
-
-1. Повністю прибрати залежність від Ansible для секретів Docker Swarm у `victoriametrics-grafana`.
-2. Забезпечити безпечне створення версіонованих Docker Secrets з розшифровуванням секретів виключно в ОЗП (`/dev/shm`) із гарантованим `cleanup trap` (`shred -u` або `rm -f`).
-3. Додати надійний `cleanup trap` у `scripts/deploy-orchestrator-swarm.sh` для видалення тимчасових маніфестів (`.monitoring.stack.*`) і артефактів у разі падіння деплою (сигнали `EXIT`, `ERR`, `INT`, `TERM`).
-4. Оновити GitHub Actions workflow (`.github/workflows/main.yml`), вимкнувши `use_ansible: false` (або вилучивши непотрібний крок `secrets`).
+Цей документ описує архітектуру, перелік змінних та механізм автономної матеріалізації версіонованих Docker Secrets у стеку `victoriametrics-grafana` без використання Ansible.
 
 ---
 
-## **1. Запропоновані зміни**
+## 1. Концепція та архітектурні принципи
 
-### **1.1. GitHub Actions Pipeline (`.github/workflows/main.yml`)**
-
-- Змінити `use_ansible: true` на `use_ansible: false` у джобах `deploy-dev` та `deploy-prod`.
-- Тепер деплой виконуватиметься суто через `scripts/deploy-orchestrator-swarm.sh` із розшифрованим `ORCHESTRATOR_ENV_FILE`.
-
-### **1.2. Оркестратор Swarm (`scripts/deploy-orchestrator-swarm.sh`)**
-
-- **Вилучити/задизейблити `run_ansible_secrets_if_configured`**: Ansible більше не викликається для створення секретів.
-- **Посилити `cleanup trap`**:
-    - Зараз `trap 'rm -f "${raw_manifest:-}" "${deploy_manifest:-}"' RETURN` спрацьовує тільки при нормальному виході з функції.
-    - Додати глобальний або функціональний trap на `EXIT ERR INT TERM`, який гарантовано видаляє тимчасові файли маніфестів (`.${STACK_NAME}.stack.raw.*`, `.${STACK_NAME}.stack.deploy.*`) та будь-які тимчасові файли навіть при падінні чи аварійному завершенні (`set -e`).
-
-### **1.3. Створення версіонованих секретів (`scripts/render-versioned-env-secret.sh`)**
-
-- Переконатися, що всі тимчасові файли секретів створюються виключно в `/dev/shm` (якщо каталог доступний) з правами `0600`.
-- Удосконалити `cleanup trap`: використовувати `shred -u` (якщо встановлено) з fallback на `rm -f` при `EXIT ERR INT TERM`.
-- Передача секретів у `docker secret create` відбувається через stdin або тимчасовий файл у `/dev/shm`, після чого файл негайно видаляється.
-- Контейнери монтують секрети у `/run/secrets/`, а зміна значення веде до нового hash-суфікса та безшовного оновлення сервісів Swarm.
-
-### **1.4. Документація та Changelog**
-
-- Зафіксувати зміни у .
-    
-    **`docs/changelogs/CHANGELOG_2026_VOL_05.md`**
-    
-- Оновити  та архітектурні примітки за потреби.
-    
-    **`docs/scripts_runbook.md`**
-    
+1. **Zero-Disk для секретів**:
+   - Розшифрування SOPS (`env.dev.enc` / `env.prod.enc`) виконується виключно в ОЗП (`/dev/shm`).
+   - Тимчасові файли секретів створюються з правами `0600` у `/dev/shm` і гарантовано знищуються через `shred -u` (і fallback `rm -f`) по сигналах `EXIT ERR INT TERM`.
+2. **Immutable Versioned Docker Secrets**:
+   - Секрети генеруються з детермінованим суфіксом хешу значення (SHA-256, перші 12 символів): `<BASE_NAME>_<HASH>`.
+   - Зміна секрету створює новий Docker Secret і викликає безшовний rolling update сервісів Swarm без потреби видаляти чи переписувати старі секрети.
+3. **Пряме монтування через `/run/secrets/`**:
+   - Сервіси не отримують паролі через `environment:` або змінні процесу на хості.
+   - Паролі монтуються Docker Swarm як файли у `/run/secrets/<secret_name>` і зчитуються entrypoint-скриптами контейнерів.
 
 ---
 
-## **2. План верифікації**
+## 2. Матриця змінних та Docker Secrets
 
-1. **Синтаксис shell**: `bash -n scripts/deploy-orchestrator-swarm.sh scripts/render-versioned-env-secret.sh`.
-2. **Observability config test**: `bash tests/test-observability-config.sh`.
-3. **Dry-run / Trap test**:
-    - Перевірка генерації та очищення тимчасових файлів при емуляції збою.
-    - Перевірка очищення файлів у `/dev/shm`.
-4. **Валідація робочого процесу**: `git diff --check`.
+| Ключ у SOPS Dotenv | Змінна імені секрету | Базова назва секрету | Контейнер/Сервіс | Цільовий шлях у контейнері |
+|---|---|---|---|---|
+| `GRAFANA_ADMIN_PASSWORD` | `GRAFANA_ADMIN_PASSWORD_SECRET_NAME` | `grafana_admin_password` | `grafana` | `/run/secrets/grafana_admin_password` |
+| `GOOGLE_SMTP_PASSWORD` | `GOOGLE_SMTP_PASSWORD_SECRET_NAME` | `grafana_smtp_password` | `grafana` | `/run/secrets/grafana_smtp_password` |
+| `MARIADB_EXPORTER_PASSWORD` | `MARIADB_EXPORTER_PASSWORD_SECRET_NAME` | `mariadb_exporter_password` | `mariadb-exporter` | `/run/secrets/mariadb_exporter_password` |
+| `MATOMO_MARIADB_EXPORTER_PASSWORD` | `MATOMO_MARIADB_EXPORTER_PASSWORD_SECRET_NAME` | `matomo_mariadb_exporter_password` | `matomo-mariadb-exporter` | `/run/secrets/matomo_mariadb_exporter_password` |
+| `SMTP2GRAPH_SYNTHETIC_PASSWORD` | `SMTP2GRAPH_SYNTHETIC_PASSWORD_SECRET_NAME` | `smtp2graph_synthetic_password` | `smtp2graph-synthetic-runner` | `/run/secrets/smtp2graph_synthetic_password` |
+
+---
+
+## 3. Компоненти оркестрації
+
+### 3.1. GitHub Actions Workflow (`.github/workflows/main.yml`)
+- Вимкнено `use_ansible: false` у `deploy-dev` та `deploy-prod`.
+- Пайплайн передає керування безпосередньо у `scripts/deploy-orchestrator-swarm.sh`.
+
+### 3.2. Оркестратор Swarm (`scripts/deploy-orchestrator-swarm.sh`)
+- **CLI прапорці**:
+  - `--env-file FILE`: передача явного розшифрованого env-файлу.
+  - `--deploy` / `--apply`: запуск деплою у Swarm (за замовчуванням `MODE="swarm"`).
+  - `--check` / `--dry-run`: перевірка без внесення змін (`MODE="noop"`).
+- **Auto-Decryption**:
+  - Якщо `ENV_FILE` не передано або відсутній, скрипт визначає середовище через `SERVER_ENV` (`dev` або `prod`), розшифровує `env.${SERVER_ENV}.enc` у `/dev/shm` за допомогою `scripts/lib/autonomous-env.sh` або використовує `.env` для локальної розробки.
+- **Cleanup Trap**:
+  - Маніфести `.${STACK_NAME}.stack.raw.*.yml` та `.${STACK_NAME}.stack.deploy.*.yml` автоматично видаляються за сигналом `EXIT ERR INT TERM RETURN`, запобігаючи накопиченню сміття при падіннях деплою.
+
+### 3.3. Рендерер секретів (`scripts/render-versioned-env-secret.sh`)
+- Читає значення змінних з `ENV_FILE`.
+- Для кожного секрету формує тимчасовий файл у `/dev/shm`, обчислює хеш, створює Docker Secret (`docker secret create`) за відсутності, та записує згенеровані назви `*_SECRET_NAME` назад у розшифрований `ENV_FILE`.
+- Очищає пам'ять через `shred -u` на `EXIT ERR INT TERM`.
+
+### 3.4. Ініціалізація томів (`scripts/init-volumes.sh`)
+- Враховує `PRIV_MODE`:
+  - `root`: прямі `chown`/`chmod`.
+  - `sudo`: виклик через `sudo -n`.
+  - `docker` (дефолт для CI/non-root оператора): використання ephemeral helper контейнера (`alpine:3.20`), що запобігає помилкам `Operation not permitted`.
+
+---
+
+## 4. Інструкція з ручного запуску та перевірки
+
+### Деплой вручну на сервері (із зашифрованого SOPS файлу):
+
+```bash
+# 1. Запуск з автоматичним розшифруванням за SERVER_ENV:
+SERVER_ENV=dev bash scripts/deploy-orchestrator-swarm.sh
+
+# 2. Або з явним розшифруванням у /dev/shm:
+ENV_TMP="$(mktemp /dev/shm/env-XXXXXX)"
+chmod 600 "${ENV_TMP}"
+sops --decrypt --input-type dotenv --output-type dotenv env.dev.enc > "${ENV_TMP}"
+
+bash scripts/deploy-orchestrator-swarm.sh --env-file "${ENV_TMP}" --deploy --apply
+
+shred -u "${ENV_TMP}" 2>/dev/null || rm -f "${ENV_TMP}"
+```
+
+### Перевірка створених секретів у Docker Swarm:
+
+```bash
+docker secret ls | grep -E 'grafana|mariadb|matomo|smtp2graph'
+```
+
+### Перевірка здоров'я сервісів стеку:
+
+```bash
+docker stack services monitoring
+docker service ps monitoring_grafana --no-trunc
+docker service ps monitoring_victoriametrics --no-trunc
+docker service ps monitoring_smtp2graph-synthetic-runner --no-trunc
+```
