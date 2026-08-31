@@ -42,6 +42,9 @@ rg -Fq 'networks: !override' docker-compose.swarm.yml
 rg -Fq 'smtp2graph-synthetic-runner:' docker-compose.swarm.yml
 rg -Fq 'VM_SYNTHETIC_QUERY_URL: http://victoriametrics:8428' docker-compose.swarm.yml
 rg -Fq 'smtp2graph_synthetic_password' docker-compose.swarm.yml
+rg -Fq 'SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS: ${SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS:-900}' docker-compose.swarm.yml
+rg -Fq 'sleep "$${SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS}"' docker-compose.swarm.yml
+rg -Fq 'SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS=900' .env.example
 rg -Fq 'service="host",exported_service="smtp2graph"' alerting/rules/smtp2graph.yml
 rg -Fq 'service="host",exported_service="smtp2graph"' grafana/provisioning/alerting/smtp2graph-alerts.yml
 if sed -n '/  grafana:/,/    secrets:/p' docker-compose.swarm.yml | rg -Fq 'smtp2graph_internal_enc'; then

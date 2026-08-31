@@ -200,6 +200,7 @@ services:
       SMTP2GRAPH_SYNTHETIC_SENDER: ${SMTP2GRAPH_SYNTHETIC_SENDER}
       SMTP2GRAPH_SYNTHETIC_RECIPIENT: ${SMTP2GRAPH_SYNTHETIC_RECIPIENT}
       SMTP2GRAPH_SYNTHETIC_DELIVERY_TIMEOUT_SECONDS: ${SMTP2GRAPH_SYNTHETIC_DELIVERY_TIMEOUT_SECONDS:-120}
+      SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS: ${SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS:-900}
       VM_SYNTHETIC_QUERY_URL: http://victoriametrics:8428
       NODE_EXPORTER_TEXTFILE_DIR: /metrics
     entrypoint:
@@ -207,9 +208,19 @@ services:
       - -ec
       - |
         export SMTP2GRAPH_SYNTHETIC_PASSWORD="$(cat /run/secrets/smtp2graph_synthetic_password)"
+        case "$${SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS}" in
+          ''|*[!0-9]*)
+            echo "ERROR: SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS must be an integer" >&2
+            exit 1
+            ;;
+        esac
+        if [ "$${SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS}" -lt 60 ]; then
+          echo "ERROR: SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS must be at least 60" >&2
+          exit 1
+        fi
         while true; do
           python3 /app/smtp2graph-synthetic-probe.py || true
-          sleep 900
+          sleep "$${SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS}"
         done
     volumes:
       - ${NODE_EXPORTER_TEXTFILE_DIR:-./.data/node-exporter-textfile}:/metrics

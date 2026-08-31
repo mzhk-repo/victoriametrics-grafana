@@ -20,9 +20,9 @@ VictoriaMetrics scrapes `smtp2graph_gateway:9464/metrics` only through the exter
 
 ## Synthetic runner
 
-`monitoring_smtp2graph-synthetic-runner` is a single Swarm service on `monitoring_net` and `smtp2graph_internal_enc`. It runs immediately after start and then every 15 minutes, reaches VictoriaMetrics as `http://victoriametrics:8428` without a host-published port, and writes only aggregate status/timestamp textfile metrics as UID/GID `1000:1000`. The atomic `.prom` file is mode `0644`, so the Node Exporter textfile collector can read it.
+`monitoring_smtp2graph-synthetic-runner` is a single Swarm service on `monitoring_net` and `smtp2graph_internal_enc`. It runs immediately after start and then every `SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS` seconds (default `900`, minimum `60`), reaches VictoriaMetrics as `http://victoriametrics:8428` without a host-published port, and writes only aggregate status/timestamp textfile metrics as UID/GID `1000:1000`. The atomic `.prom` file is mode `0644`, so the Node Exporter textfile collector can read it.
 
-Required encrypted env keys: `SMTP2GRAPH_SYNTHETIC_HOST`, `SMTP2GRAPH_SYNTHETIC_PORT`, `SMTP2GRAPH_SYNTHETIC_TLS_SERVER_NAME`, `SMTP2GRAPH_SYNTHETIC_USER`, `SMTP2GRAPH_SYNTHETIC_PASSWORD`, `SMTP2GRAPH_SYNTHETIC_SENDER`, `SMTP2GRAPH_SYNTHETIC_RECIPIENT` and `SMTP2GRAPH_SYNTHETIC_DELIVERY_TIMEOUT_SECONDS`. The password is rendered as a versioned Docker Secret; never place it in a service environment variable or shell arguments.
+Required encrypted env keys: `SMTP2GRAPH_SYNTHETIC_HOST`, `SMTP2GRAPH_SYNTHETIC_PORT`, `SMTP2GRAPH_SYNTHETIC_TLS_SERVER_NAME`, `SMTP2GRAPH_SYNTHETIC_USER`, `SMTP2GRAPH_SYNTHETIC_PASSWORD`, `SMTP2GRAPH_SYNTHETIC_SENDER`, `SMTP2GRAPH_SYNTHETIC_RECIPIENT`, `SMTP2GRAPH_SYNTHETIC_DELIVERY_TIMEOUT_SECONDS` and `SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS`. The password is rendered as a versioned Docker Secret; never place it in a service environment variable or shell arguments.
 
 `SMTP2GRAPH_SYNTHETIC_HOST` is the SMTP2Graph Swarm DNS alias on `smtp2graph_internal_enc` (currently `gateway`), while `SMTP2GRAPH_SYNTHETIC_TLS_SERVER_NAME` remains the gateway certificate name (currently `smtp-int.pinokew.buzz`). Never use `127.0.0.1` for the host: inside the runner it refers to the runner itself, not the gateway.
 

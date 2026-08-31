@@ -1,3 +1,11 @@
+## [2026-08-31] — SMTP2Graph synthetic runner: configurable delivery interval
+
+- **Context:** The runner had a hardcoded 15-minute interval, preventing per-environment tuning of synthetic email frequency.
+- **Change:** Added `SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS` to the Swarm runtime contract and `.env.example`; default is `900` seconds. Runner startup validates a positive integer interval of at least `60` seconds before entering the loop.
+- **Verification:** Configuration test asserts the env contract and variable-based `sleep`; static Compose rendering validates the default.
+- **Risks:** Lower intervals generate more synthetic email and Graph API traffic; use a non-production recipient and keep the configured timeout below the interval.
+- **Rollback:** Remove the environment setting and restore the fixed `900` second sleep.
+
 ## [2026-08-31] — SMTP2Graph synthetic alert: align Node Exporter labels
 
 - **Context:** Synthetic textfile metrics were ingested successfully, but Node Exporter's static target labels overrode `service="smtp2graph"` with `service="host"`, preserving the original as `exported_service="smtp2graph"`; the alert and dashboard query returned no data.
