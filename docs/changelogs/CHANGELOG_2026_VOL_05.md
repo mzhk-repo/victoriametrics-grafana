@@ -1,3 +1,11 @@
+## [2026-08-31] — Swarm secrets: autonomous materialization and deploy trap hardening
+
+- **Context:** Deployments failed during Ansible secrets pre-flight when `MS365_*` was migrated to `GOOGLE_*` in the SOPS env. Swarm secrets for monitoring should materialize autonomously directly from decrypted env in RAM without requiring Ansible secrets tasks.
+- **Change:** Disabled `use_ansible` in `.github/workflows/main.yml` for `deploy-dev` and `deploy-prod`; bypassed `run_ansible_secrets_if_configured` in `scripts/deploy-orchestrator-swarm.sh`; hardened `scripts/render-versioned-env-secret.sh` to use `/dev/shm` for temporary secret files with `shred -u` cleanup on `EXIT ERR INT TERM`; hardened `scripts/deploy-orchestrator-swarm.sh` cleanup trap on `EXIT ERR INT TERM RETURN` to guarantee removal of temporary stack manifest artifacts upon deploy failures.
+- **Verification:** Shell syntax checks passed (`bash -n`); observability configuration test passed (`bash tests/test-observability-config.sh`); Git status checked.
+- **Risks:** All runtime secrets consumed by the stack must be present in the SOPS encrypted env files (`env.dev.enc`/`env.prod.enc`).
+- **Rollback:** Re-enable `use_ansible: true` in the workflow and restore Ansible playbook secrets execution if needed.
+
 ## [2026-08-31] — Observability config test: portable fixed-string checks
 
 - **Context:** Hosts without ripgrep could not run `tests/test-observability-config.sh`.

@@ -30,7 +30,7 @@ jobs:
     with:
       environment_name: development
       deploy: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' }}
-      use_ansible: true
+      use_ansible: false
       build_and_push_docker: false
       docker_image_name: victoriametrics-grafana
       orchestration_script_path: 'scripts/deploy-orchestrator-swarm.sh'
@@ -55,7 +55,7 @@ jobs:
     with:
       environment_name: production
       deploy: ${{ github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v') }}
-      use_ansible: true
+      use_ansible: false
       build_and_push_docker: false
       docker_image_name: victoriametrics-grafana
       orchestration_script_path: 'scripts/deploy-orchestrator-swarm.sh'

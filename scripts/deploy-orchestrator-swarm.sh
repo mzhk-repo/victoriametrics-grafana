@@ -99,57 +99,8 @@ detect_compose_file() {
 }
 
 run_ansible_secrets_if_configured() {
-  local infra_repo_path environment inventory_env inventory_path playbook_path
-
-  infra_repo_path="${INFRA_REPO_PATH:-}"
-  environment="${ENVIRONMENT_NAME:-}"
-
-  if [[ -z "${infra_repo_path}" ]]; then
-    log "INFRA_REPO_PATH is not set; skip ansible secrets refresh"
-    return 0
-  fi
-
-  if [[ ! -d "${infra_repo_path}" ]]; then
-    log "ERROR: INFRA_REPO_PATH does not exist: ${infra_repo_path}"
-    exit 1
-  fi
-
-  if ! command -v ansible-playbook >/dev/null 2>&1; then
-    log "ERROR: ansible-playbook not found on host"
-    exit 1
-  fi
-
-  case "${environment}" in
-    development|dev)
-      inventory_env="dev"
-      ;;
-    production|prod)
-      inventory_env="prod"
-      ;;
-    *)
-      log "ERROR: unsupported ENVIRONMENT_NAME=${environment} (expected: development|production)"
-      exit 1
-      ;;
-  esac
-
-  inventory_path="${infra_repo_path}/ansible/inventories/${inventory_env}/hosts.yml"
-  playbook_path="${infra_repo_path}/ansible/playbooks/swarm.yml"
-
-  if [[ ! -f "${inventory_path}" ]]; then
-    log "ERROR: inventory file not found: ${inventory_path}"
-    exit 1
-  fi
-  if [[ ! -f "${playbook_path}" ]]; then
-    log "ERROR: playbook file not found: ${playbook_path}"
-    exit 1
-  fi
-
-  log "Refreshing Swarm secrets via Ansible (inventory=${inventory_env})"
-  ANSIBLE_CONFIG="${infra_repo_path}/ansible/ansible.cfg" \
-    ansible-playbook \
-    -i "${inventory_path}" \
-    "${playbook_path}" \
-    --tags secrets
+  # Swarm secrets are materialized autonomously via scripts/render-versioned-env-secret.sh
+  return 0
 }
 
 ensure_swarm_overlay_network() {
@@ -195,14 +146,23 @@ ensure_encrypted_external_swarm_overlay() {
   log "Using encrypted external SMTP2Graph overlay '${network_name}'"
 }
 
+cleanup_deploy_artifacts() {
+  if [[ -n "${raw_manifest:-}" && -f "${raw_manifest}" ]]; then
+    rm -f "${raw_manifest}"
+  fi
+  if [[ -n "${deploy_manifest:-}" && -f "${deploy_manifest}" ]]; then
+    rm -f "${deploy_manifest}"
+  fi
+}
+
 deploy_swarm() {
-  local compose_file swarm_file raw_manifest deploy_manifest scrape_config_file scrape_config_checksum_before scrape_config_checksum_after scrape_config_changed vm_service_name smtp2graph_overlay_network
+  local compose_file swarm_file scrape_config_file scrape_config_checksum_before scrape_config_checksum_after scrape_config_changed vm_service_name smtp2graph_overlay_network
 
   compose_file="$(detect_compose_file)"
   swarm_file="docker-compose.swarm.yml"
   raw_manifest="$(mktemp "${PROJECT_ROOT}/.${STACK_NAME}.stack.raw.XXXXXX.yml")"
   deploy_manifest="$(mktemp "${PROJECT_ROOT}/.${STACK_NAME}.stack.deploy.XXXXXX.yml")"
-  trap 'rm -f "${raw_manifest:-}" "${deploy_manifest:-}"' RETURN
+  trap cleanup_deploy_artifacts EXIT ERR INT TERM RETURN
 
   if [[ -z "${compose_file}" ]]; then
     log "ERROR: compose file not found (expected docker-compose.yaml|yml)"
