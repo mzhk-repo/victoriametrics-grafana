@@ -33,8 +33,8 @@
 ## 3. Компоненти оркестрації
 
 ### 3.1. GitHub Actions Workflow (`.github/workflows/main.yml`)
-- Вимкнено `use_ansible: false` у `deploy-dev` та `deploy-prod`.
-- Пайплайн передає керування безпосередньо у `scripts/deploy-orchestrator-swarm.sh`.
+- У `deploy-dev` та `deploy-prod` встановлено `use_ansible: true`, що у shared workflow обирає Swarm+SOPS deploy path (назва input є історичною).
+- Пайплайн передає керування безпосередньо у `scripts/deploy-orchestrator-swarm.sh` і не виконує legacy `docker compose up` після Swarm deploy.
 
 ### 3.2. Оркестратор Swarm (`scripts/deploy-orchestrator-swarm.sh`)
 - **CLI прапорці**:

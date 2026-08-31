@@ -6,6 +6,14 @@
 - **Risks:** All runtime secrets consumed by the stack must be present in the SOPS encrypted env files (`env.dev.enc`/`env.prod.enc`).
 - **Rollback:** Re-enable `use_ansible: true` in the workflow and restore Ansible playbook secrets execution if needed.
 
+## [2026-08-31] — CI: select Swarm+SOPS deploy workflow
+
+- **Context:** The reusable workflow was called with `use_ansible: false`, selecting its legacy Compose path. It ran `docker compose up` without the decrypted runtime env after the Swarm orchestrator had already deployed successfully, causing empty-variable warnings and an invalid Grafana volume specification.
+- **Change:** Set `use_ansible: true` for development and production jobs to select the shared Swarm+SOPS path. Updated Docker Secrets documentation to clarify the historical input name and prevent the legacy post-deploy Compose command.
+- **Verification:** Inspected the referenced shared workflow: its `use_ansible: true` branch invokes the orchestrator with `/tmp/env.decrypted` and does not run the legacy Compose post-deploy step.
+- **Risks:** CI now requires the existing `SOPS_AGE_KEY` repository/environment secret, which is already passed by both jobs.
+- **Rollback:** Set `use_ansible: false` only when reverting the stack to the legacy Docker Compose deployment model.
+
 ## [2026-08-31] — Observability config test: portable fixed-string checks
 
 - **Context:** Hosts without ripgrep could not run `tests/test-observability-config.sh`.
