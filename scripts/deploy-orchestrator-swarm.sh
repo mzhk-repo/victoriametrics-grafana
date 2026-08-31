@@ -4,9 +4,44 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-MODE="${ORCHESTRATOR_MODE:-noop}"
+# shellcheck source=scripts/lib/orchestrator-env.sh
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/orchestrator-env.sh"
+# shellcheck source=scripts/lib/autonomous-env.sh
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/autonomous-env.sh"
+
+MODE="${ORCHESTRATOR_MODE:-swarm}"
 STACK_NAME="${STACK_NAME:-monitoring}"
-ENV_FILE="${ORCHESTRATOR_ENV_FILE:-/tmp/env.decrypted}"
+ENV_FILE="${ORCHESTRATOR_ENV_FILE:-}"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --env-file)
+      ENV_FILE="${2:-}"
+      shift 2
+      ;;
+    --check|--dry-run)
+      MODE="noop"
+      shift
+      ;;
+    --deploy|--apply)
+      MODE="swarm"
+      shift
+      ;;
+    -h|--help)
+      cat <<'USAGE'
+Usage:
+  scripts/deploy-orchestrator-swarm.sh [--env-file FILE] [--deploy] [--apply] [--check]
+USAGE
+      exit 0
+      ;;
+    *)
+      # Ignore unknown flags for forward compatibility
+      shift
+      ;;
+  esac
+done
 
 log() {
   printf '[deploy-orchestrator] %s\n' "$*"
@@ -173,12 +208,18 @@ deploy_swarm() {
     exit 1
   fi
 
-  if [[ ! -f "${ENV_FILE}" ]]; then
-    if [[ -f ".env" ]]; then
-      ENV_FILE=".env"
+  if [[ -z "${ENV_FILE:-}" || ! -f "${ENV_FILE}" ]]; then
+    if [[ -n "${ORCHESTRATOR_ENV_FILE:-}" && -f "${ORCHESTRATOR_ENV_FILE}" ]]; then
+      ENV_FILE="${ORCHESTRATOR_ENV_FILE}"
+    elif [[ -n "${SERVER_ENV:-}" && -f "${PROJECT_ROOT}/env.$(resolve_autonomous_environment "${SERVER_ENV}").enc" ]]; then
+      log "Decrypting env for SERVER_ENV=${SERVER_ENV} into /dev/shm"
+      load_autonomous_env "${PROJECT_ROOT}" "${SERVER_ENV}"
+      ENV_FILE="${AUTONOMOUS_ENV_TMP}"
+    elif [[ -f "${PROJECT_ROOT}/.env" ]]; then
+      ENV_FILE="${PROJECT_ROOT}/.env"
       log "WARNING: env.*.enc не знайдено або ORCHESTRATOR_ENV_FILE не передано. Fallback на локальний .env — тільки для dev-середовища."
     else
-      log "ERROR: env file not found (${ORCHESTRATOR_ENV_FILE:-/tmp/env.decrypted}) and .env missing"
+      log "ERROR: env file not found (ORCHESTRATOR_ENV_FILE=${ORCHESTRATOR_ENV_FILE:-}), encrypted env missing, and .env missing"
       exit 1
     fi
   fi
