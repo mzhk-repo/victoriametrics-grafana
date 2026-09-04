@@ -44,6 +44,10 @@ contains_fixed 'smtp2graph_gateway:9464' "$output_file"
 contains_fixed 'service: smtp2graph' "$output_file"
 contains_fixed 'networks: !override' docker-compose.swarm.yml
 contains_fixed 'smtp2graph-synthetic-runner:' docker-compose.swarm.yml
+if sed -n '/  smtp2graph-synthetic-runner:/,/    deploy:/p' docker-compose.swarm.yml | grep -Fq 'user: "1000:1000"'; then
+  echo 'SMTP2Graph synthetic runner must use its image default user to write textfile metrics' >&2
+  exit 1
+fi
 contains_fixed 'VM_SYNTHETIC_QUERY_URL: http://victoriametrics:8428' docker-compose.swarm.yml
 contains_fixed 'smtp2graph_synthetic_password' docker-compose.swarm.yml
 contains_fixed 'SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS: ${SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS:-900}' docker-compose.swarm.yml

@@ -1,3 +1,11 @@
+## [2026-09-04] — SMTP2Graph synthetic runner: restore textfile write access
+
+- **Context:** The Swarm runner was forced to UID/GID `1000:1000`, while the deployed Node Exporter textfile directory was owned by `1001:4` with mode `0775`; probe attempts failed with `PermissionError` creating `/metrics/tmp*`, so no synthetic status metric was published and the delivery alert remained stale.
+- **Change:** Removed the fixed non-root `user` from `smtp2graph-synthetic-runner`, allowing the image default user to write only to its existing `/metrics` bind mount. Updated the runbook and added a configuration regression check.
+- **Verification:** `bash tests/test-observability-config.sh` and `python3 -m unittest tests/test_smtp2graph_synthetic_probe.py` pass locally. Runtime verification requires Swarm redeploy and a successful synthetic probe.
+- **Risks:** The runner now writes as root inside its limited textfile bind mount; it must retain no other writable host mounts.
+- **Rollback:** Restore `user: "1000:1000"` only after aligning the textfile directory ownership/group with that UID/GID.
+
 ## [2026-08-31] — Swarm secrets: autonomous materialization and deploy trap hardening
 
 - **Context:** Deployments failed during Ansible secrets pre-flight when `MS365_*` was migrated to `GOOGLE_*` in the SOPS env, or when `ORCHESTRATOR_MODE` defaulted to no-op while shared workflow expected direct execution via `--env-file` or `ORCHESTRATOR_ENV_FILE`. Swarm secrets for monitoring should materialize autonomously directly from decrypted env in RAM without requiring Ansible secrets tasks.
