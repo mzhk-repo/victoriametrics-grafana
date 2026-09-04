@@ -4,9 +4,44 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-MODE="${ORCHESTRATOR_MODE:-noop}"
+# shellcheck source=scripts/lib/orchestrator-env.sh
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/orchestrator-env.sh"
+# shellcheck source=scripts/lib/autonomous-env.sh
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/autonomous-env.sh"
+
+MODE="${ORCHESTRATOR_MODE:-swarm}"
 STACK_NAME="${STACK_NAME:-monitoring}"
-ENV_FILE="${ORCHESTRATOR_ENV_FILE:-/tmp/env.decrypted}"
+ENV_FILE="${ORCHESTRATOR_ENV_FILE:-}"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --env-file)
+      ENV_FILE="${2:-}"
+      shift 2
+      ;;
+    --check|--dry-run)
+      MODE="noop"
+      shift
+      ;;
+    --deploy|--apply)
+      MODE="swarm"
+      shift
+      ;;
+    -h|--help)
+      cat <<'USAGE'
+Usage:
+  scripts/deploy-orchestrator-swarm.sh [--env-file FILE] [--deploy] [--apply] [--check]
+USAGE
+      exit 0
+      ;;
+    *)
+      # Ignore unknown flags for forward compatibility
+      shift
+      ;;
+  esac
+done
 
 log() {
   printf '[deploy-orchestrator] %s\n' "$*"
@@ -99,57 +134,8 @@ detect_compose_file() {
 }
 
 run_ansible_secrets_if_configured() {
-  local infra_repo_path environment inventory_env inventory_path playbook_path
-
-  infra_repo_path="${INFRA_REPO_PATH:-}"
-  environment="${ENVIRONMENT_NAME:-}"
-
-  if [[ -z "${infra_repo_path}" ]]; then
-    log "INFRA_REPO_PATH is not set; skip ansible secrets refresh"
-    return 0
-  fi
-
-  if [[ ! -d "${infra_repo_path}" ]]; then
-    log "ERROR: INFRA_REPO_PATH does not exist: ${infra_repo_path}"
-    exit 1
-  fi
-
-  if ! command -v ansible-playbook >/dev/null 2>&1; then
-    log "ERROR: ansible-playbook not found on host"
-    exit 1
-  fi
-
-  case "${environment}" in
-    development|dev)
-      inventory_env="dev"
-      ;;
-    production|prod)
-      inventory_env="prod"
-      ;;
-    *)
-      log "ERROR: unsupported ENVIRONMENT_NAME=${environment} (expected: development|production)"
-      exit 1
-      ;;
-  esac
-
-  inventory_path="${infra_repo_path}/ansible/inventories/${inventory_env}/hosts.yml"
-  playbook_path="${infra_repo_path}/ansible/playbooks/swarm.yml"
-
-  if [[ ! -f "${inventory_path}" ]]; then
-    log "ERROR: inventory file not found: ${inventory_path}"
-    exit 1
-  fi
-  if [[ ! -f "${playbook_path}" ]]; then
-    log "ERROR: playbook file not found: ${playbook_path}"
-    exit 1
-  fi
-
-  log "Refreshing Swarm secrets via Ansible (inventory=${inventory_env})"
-  ANSIBLE_CONFIG="${infra_repo_path}/ansible/ansible.cfg" \
-    ansible-playbook \
-    -i "${inventory_path}" \
-    "${playbook_path}" \
-    --tags secrets
+  # Swarm secrets are materialized autonomously via scripts/render-versioned-env-secret.sh
+  return 0
 }
 
 ensure_swarm_overlay_network() {
@@ -174,14 +160,45 @@ ensure_swarm_overlay_network() {
   docker network create --driver overlay --attachable "${network_name}" >/dev/null
 }
 
+ensure_encrypted_external_swarm_overlay() {
+  local network_name scope driver options
+  network_name="$1"
+
+  if ! docker network inspect "${network_name}" >/dev/null 2>&1; then
+    log "ERROR: required SMTP2Graph network '${network_name}' does not exist"
+    log "Create it in SMTP2Graph IaC as an encrypted Swarm overlay before deploying monitoring."
+    exit 1
+  fi
+
+  scope="$(docker network inspect -f '{{.Scope}}' "${network_name}" 2>/dev/null || true)"
+  driver="$(docker network inspect -f '{{.Driver}}' "${network_name}" 2>/dev/null || true)"
+  options="$(docker network inspect -f '{{json .Options}}' "${network_name}" 2>/dev/null || true)"
+  if [[ "${scope}" != "swarm" || "${driver}" != "overlay" || "${options}" != *'"encrypted"'* ]]; then
+    log "ERROR: SMTP2Graph network '${network_name}' must be an encrypted swarm overlay (got ${driver}/${scope})."
+    exit 1
+  fi
+
+  log "Using encrypted external SMTP2Graph overlay '${network_name}'"
+}
+
+cleanup_deploy_artifacts() {
+  if [[ -n "${raw_manifest:-}" && -f "${raw_manifest}" ]]; then
+    rm -f "${raw_manifest}"
+  fi
+  if [[ -n "${deploy_manifest:-}" && -f "${deploy_manifest}" ]]; then
+    rm -f "${deploy_manifest}"
+  fi
+  cleanup_autonomous_env
+}
+
 deploy_swarm() {
-  local compose_file swarm_file raw_manifest deploy_manifest scrape_config_file scrape_config_checksum_before scrape_config_checksum_after scrape_config_changed vm_service_name
+  local compose_file swarm_file scrape_config_file scrape_config_checksum_before scrape_config_checksum_after scrape_config_changed vm_service_name smtp2graph_overlay_network
 
   compose_file="$(detect_compose_file)"
   swarm_file="docker-compose.swarm.yml"
   raw_manifest="$(mktemp "${PROJECT_ROOT}/.${STACK_NAME}.stack.raw.XXXXXX.yml")"
   deploy_manifest="$(mktemp "${PROJECT_ROOT}/.${STACK_NAME}.stack.deploy.XXXXXX.yml")"
-  trap 'rm -f "${raw_manifest:-}" "${deploy_manifest:-}"' RETURN
+  trap cleanup_deploy_artifacts EXIT ERR INT TERM RETURN
 
   if [[ -z "${compose_file}" ]]; then
     log "ERROR: compose file not found (expected docker-compose.yaml|yml)"
@@ -192,12 +209,18 @@ deploy_swarm() {
     exit 1
   fi
 
-  if [[ ! -f "${ENV_FILE}" ]]; then
-    if [[ -f ".env" ]]; then
-      ENV_FILE=".env"
+  if [[ -z "${ENV_FILE:-}" || ! -f "${ENV_FILE}" ]]; then
+    if [[ -n "${ORCHESTRATOR_ENV_FILE:-}" && -f "${ORCHESTRATOR_ENV_FILE}" ]]; then
+      ENV_FILE="${ORCHESTRATOR_ENV_FILE}"
+    elif [[ -n "${SERVER_ENV:-}" && -f "${PROJECT_ROOT}/env.$(resolve_autonomous_environment "${SERVER_ENV}").enc" ]]; then
+      log "Decrypting env for SERVER_ENV=${SERVER_ENV} into /dev/shm"
+      load_autonomous_env "${PROJECT_ROOT}" "${SERVER_ENV}"
+      ENV_FILE="${AUTONOMOUS_ENV_TMP}"
+    elif [[ -f "${PROJECT_ROOT}/.env" ]]; then
+      ENV_FILE="${PROJECT_ROOT}/.env"
       log "WARNING: env.*.enc не знайдено або ORCHESTRATOR_ENV_FILE не передано. Fallback на локальний .env — тільки для dev-середовища."
     else
-      log "ERROR: env file not found (${ORCHESTRATOR_ENV_FILE:-/tmp/env.decrypted}) and .env missing"
+      log "ERROR: env file not found (ORCHESTRATOR_ENV_FILE=${ORCHESTRATOR_ENV_FILE:-}), encrypted env missing, and .env missing"
       exit 1
     fi
   fi
@@ -217,6 +240,13 @@ deploy_swarm() {
   export MONITORING_NETWORK_NAME
   log "Using MONITORING_NETWORK_NAME=${MONITORING_NETWORK_NAME}"
   ensure_swarm_overlay_network "${MONITORING_NETWORK_NAME}"
+
+  smtp2graph_overlay_network="$(read_env_var_from_file "SMTP2GRAPH_OVERLAY_NETWORK" "${ENV_FILE}")"
+  if [[ -z "${smtp2graph_overlay_network}" ]]; then
+    log "ERROR: SMTP2GRAPH_OVERLAY_NETWORK is not set"
+    exit 1
+  fi
+  ensure_encrypted_external_swarm_overlay "${smtp2graph_overlay_network}"
 
   log "Initializing bind-mount directories"
   ORCHESTRATOR_ENV_FILE="${ENV_FILE}" bash scripts/init-volumes.sh

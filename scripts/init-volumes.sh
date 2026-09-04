@@ -149,16 +149,18 @@ run_chown() {
   local owner="$1"
   local target="$2"
 
-  if run_cmd chown "$owner" "$target"; then
-    return 0
-  fi
-
   case "$PRIV_MODE" in
+    root)
+      run_cmd chown "$owner" "$target"
+      ;;
     sudo)
       run_cmd sudo -n chown "$owner" "$target"
       ;;
     docker)
       chown_with_docker "$owner" "$target"
+      ;;
+    local)
+      run_cmd chown "$owner" "$target" || true
       ;;
     *)
       echo "ERROR: Cannot change owner for $target to $owner"
@@ -171,16 +173,18 @@ run_chmod() {
   local mode="$1"
   local target="$2"
 
-  if run_cmd chmod "$mode" "$target"; then
-    return 0
-  fi
-
   case "$PRIV_MODE" in
+    root)
+      run_cmd chmod "$mode" "$target"
+      ;;
     sudo)
       run_cmd sudo -n chmod "$mode" "$target"
       ;;
     docker)
       chmod_with_docker "$mode" "$target"
+      ;;
+    local)
+      run_cmd chmod "$mode" "$target" || true
       ;;
     *)
       echo "ERROR: Cannot change mode for $target to $mode"

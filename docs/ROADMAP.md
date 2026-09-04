@@ -11,7 +11,7 @@
 - VictoriaMetrics single-node — центральне зберігання метрик
 - 6 exporters для критичних компонентів
 - 5 must-have Grafana dashboards
-- ≤15 critical alert rules → MS365 Email
+- ≤15 critical alert rules → Google SMTP email
 - Все — у Git, без публічної експозиції
 
 **Поза scope зараз:** Loki/ELK, distributed tracing, VuFind (статус не визначено), Redis/RabbitMQ для Integrator task persistence.
@@ -169,8 +169,8 @@ Secrets: .env (never in Git)
 **Stack:** Grafana Alerting (вбудований) — не потрібен окремий Alertmanager.
 
 **Routing:**
-- `severity=critical` → MS365 Email 
-- `severity=warning` → MS365 Email (батч)
+- `severity=critical` → Google SMTP email
+- `severity=warning` → Google SMTP email (батч)
 
 **Alert rules (P0):**
 

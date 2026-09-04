@@ -1,3 +1,91 @@
+## [2026-08-31] — Swarm secrets: autonomous materialization and deploy trap hardening
+
+- **Context:** Deployments failed during Ansible secrets pre-flight when `MS365_*` was migrated to `GOOGLE_*` in the SOPS env, or when `ORCHESTRATOR_MODE` defaulted to no-op while shared workflow expected direct execution via `--env-file` or `ORCHESTRATOR_ENV_FILE`. Swarm secrets for monitoring should materialize autonomously directly from decrypted env in RAM without requiring Ansible secrets tasks.
+- **Change:** Disabled `use_ansible` in `.github/workflows/main.yml` for `deploy-dev` and `deploy-prod`; updated `scripts/deploy-orchestrator-swarm.sh` to accept CLI flags (`--env-file`, `--deploy`, `--apply`, `--check`), defaulted `MODE` to `swarm` and added automatic decryption into `/dev/shm` via `SERVER_ENV` fallback; bypassed `run_ansible_secrets_if_configured`; hardened `scripts/render-versioned-env-secret.sh` to use `/dev/shm` for temporary secret files with `shred -u` cleanup on `EXIT ERR INT TERM`; hardened `scripts/deploy-orchestrator-swarm.sh` cleanup trap on `EXIT ERR INT TERM RETURN` to guarantee removal of temporary stack manifest artifacts and decrypted env upon completion/failure; updated `docker-compose.yml` networks with safe fallback names (`${SMTP2GRAPH_OVERLAY_NETWORK:-smtp2graph_internal_enc}`) to prevent post-deploy compose evaluation failures.
+- **Verification:** Shell syntax checks passed (`bash -n`); observability configuration test passed (`bash tests/test-observability-config.sh`); Git status and diff checked.
+- **Risks:** All runtime secrets consumed by the stack must be present in the SOPS encrypted env files (`env.dev.enc`/`env.prod.enc`).
+- **Rollback:** Re-enable `use_ansible: true` in the workflow and restore Ansible playbook secrets execution if needed.
+
+## [2026-08-31] — CI: select Swarm+SOPS deploy workflow
+
+- **Context:** The reusable workflow was called with `use_ansible: false`, selecting its legacy Compose path. It ran `docker compose up` without the decrypted runtime env after the Swarm orchestrator had already deployed successfully, causing empty-variable warnings and an invalid Grafana volume specification.
+- **Change:** Set `use_ansible: true` for development and production jobs to select the shared Swarm+SOPS path. Updated Docker Secrets documentation to clarify the historical input name and prevent the legacy post-deploy Compose command.
+- **Verification:** Inspected the referenced shared workflow: its `use_ansible: true` branch invokes the orchestrator with `/tmp/env.decrypted` and does not run the legacy Compose post-deploy step.
+- **Risks:** CI now requires the existing `SOPS_AGE_KEY` repository/environment secret, which is already passed by both jobs.
+- **Rollback:** Set `use_ansible: false` only when reverting the stack to the legacy Docker Compose deployment model.
+
+## [2026-08-31] — Observability config test: portable fixed-string checks
+
+- **Context:** Hosts without ripgrep could not run `tests/test-observability-config.sh`.
+- **Change:** Replaced the test's `rg -Fq` calls with a `grep -Fq` helper, retaining fixed-string matching semantics without an extra dependency.
+- **Verification:** Shell syntax and the observability configuration test pass.
+- **Risks:** GNU/POSIX-compatible `grep` remains required, as it is a standard base-system dependency.
+- **Rollback:** Restore ripgrep checks only if ripgrep becomes an explicit required runtime dependency.
+
+## [2026-08-31] — SMTP2Graph live synthetic and metrics integration test
+
+- **Context:** Static configuration checks did not verify the deployed Swarm runner, internal VictoriaMetrics scrape path, or the external SMTP alert receiver contract together.
+- **Change:** Added `tests/integration/test-synthetic-and-metrics.sh`. It runs the probe inside the active Swarm runner with its password read only from Docker Secret, waits for `up{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway"} == 1` through runner-to-VictoriaMetrics service DNS, and validates Grafana's Google SMTP email receiver and routing payload contract without sending an alert.
+- **Verification:** The integration test completed a live synthetic delivery; VictoriaMetrics returned one SMTP2Graph gateway `up` series with value `1`. Configuration and unit tests pass.
+- **Risks:** The test sends one allowlisted synthetic email and requires Docker daemon access on the Swarm manager; it must not be run against an unapproved recipient or from an untrusted host.
+- **Rollback:** Remove the integration script; no runtime configuration or persistent data is changed by the test.
+
+## [2026-08-31] — SMTP2Graph test commands in scripts runbook
+
+- **Context:** Operators needed a single documented location for both static observability validation and the live SMTP2Graph synthetic smoke test.
+- **Change:** Added `bash tests/test-observability-config.sh` and `tests/integration/test-synthetic-and-metrics.sh` to the SMTP2Graph section of `docs/scripts_runbook.md`, including the Swarm-manager and allowlisted-email requirement for the live test.
+- **Verification:** Commands and referenced test paths were checked locally.
+- **Risks:** The live test sends one synthetic email and needs Docker daemon access.
+- **Rollback:** Remove the two command references from the runbook.
+
+## [2026-08-31] — SMTP2Graph synthetic alert: derive freshness from runner schedule
+
+- **Context:** A fixed 1,200-second freshness threshold caused false alerts when an environment used a longer synthetic-delivery interval.
+- **Change:** The runner now exports `smtp2graph_synthetic_freshness_threshold_seconds`, calculated as `SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS + SMTP2GRAPH_SYNTHETIC_FRESHNESS_GRACE_SECONDS`; the grace default is `300` seconds. Both VictoriaMetrics and Grafana alert rules consume the exported threshold.
+- **Verification:** Unit and configuration tests cover threshold emission, input validation, and both alert definitions.
+- **Risks:** A grace period that is too small can alert during normal delivery or scrape delay; an excessive one delays detection.
+- **Rollback:** Remove the threshold metric use and restore a fixed alert threshold only if all environments return to a common interval.
+
+## [2026-08-31] — SMTP2Graph synthetic runner: configurable delivery interval
+
+- **Context:** The runner had a hardcoded 15-minute interval, preventing per-environment tuning of synthetic email frequency.
+- **Change:** Added `SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS` to the Swarm runtime contract and `.env.example`; default is `900` seconds. Runner startup validates a positive integer interval of at least `60` seconds before entering the loop.
+- **Verification:** Configuration test asserts the env contract and variable-based `sleep`; static Compose rendering validates the default.
+- **Risks:** Lower intervals generate more synthetic email and Graph API traffic; use a non-production recipient and keep the configured timeout below the interval.
+- **Rollback:** Remove the environment setting and restore the fixed `900` second sleep.
+
+## [2026-08-31] — SMTP2Graph synthetic alert: align Node Exporter labels
+
+- **Context:** Synthetic textfile metrics were ingested successfully, but Node Exporter's static target labels overrode `service="smtp2graph"` with `service="host"`, preserving the original as `exported_service="smtp2graph"`; the alert and dashboard query returned no data.
+- **Change:** Updated synthetic alert rules and the SMTP2Graph dashboard to match `service="host", exported_service="smtp2graph"`. Added regression checks and documented the label transformation.
+- **Verification:** Live VictoriaMetrics query returned `smtp2graph_synthetic_last_status=1` with the new matcher labels.
+- **Risks:** Any future change to Node Exporter target labels must update the synthetic alert/dashboard matchers together.
+- **Rollback:** Restore the prior label matchers only if the Node Exporter scrape target stops defining `service="host"`.
+
+## [2026-08-31] — SMTP2Graph synthetic runner: expose textfile metrics to Node Exporter
+
+- **Context:** Synthetic delivery succeeded, but Node Exporter logged `permission denied` for `smtp2graph_synthetic.prom`, so VictoriaMetrics and Grafana could not observe the result.
+- **Change:** The runner now sets mode `0644` on its temporary Prometheus textfile before the atomic rename. Added a unit assertion for the final file mode and documented the collector-read requirement.
+- **Verification:** Unit test validates the metric content remains secret-free and the published textfile is world-readable; runtime validation requires redeploying the runner and checking Node Exporter no longer logs textfile permission errors.
+- **Risks:** The textfile contains only aggregate status and timestamps; mode `0644` does not expose credentials or message content.
+- **Rollback:** Revert the mode change; Node Exporter ingestion of this textfile will fail again for non-owner users.
+
+## [2026-08-28] — SMTP2Graph synthetic runner: use gateway overlay alias
+
+- **Context:** Swarm synthetic runner received `SMTP2GRAPH_SYNTHETIC_HOST=127.0.0.1` and failed with `ConnectionRefusedError`; loopback resolves to the runner itself, not SMTP2Graph.
+- **Change:** Set the example contract to the encrypted-overlay gateway DNS alias `gateway` and document the required separation between SMTP TCP host (`gateway`) and TLS server name (`smtp-int.pinokew.buzz`).
+- **Verification:** From `monitoring_smtp2graph-synthetic-runner`, `gateway` resolved to `10.0.8.2` and a TCP connection to `gateway:2525` succeeded.
+- **Risks:** The encrypted runtime env must be updated and the Swarm stack redeployed; the result still depends on valid STARTTLS, authentication and recipient policy at the gateway.
+- **Rollback:** Restore the prior runtime host only if an alternate reachable SMTP endpoint is intentionally configured.
+
+## [2026-08-28] — Grafana alert delivery: migrate from MS365 SMTP to Google SMTP
+
+- **Context:** Alert delivery must use Google Workspace/Gmail SMTP instead of the MS365 relay.
+- **Change:** Replaced the `MS365_*` alert-delivery contract with `GOOGLE_*` in Compose, Swarm, Grafana contact points and versioned Docker-secret rendering. Default endpoint is `smtp.gmail.com:587`; Grafana enforces `MandatoryStartTLS`. Updated operational and product documentation.
+- **Verification:** Static Compose rendering and configuration checks are required before deployment; the Google App Password remains in the encrypted runtime env and is never committed.
+- **Risks:** Google SMTP submission requires a permitted account and App Password (or an approved Workspace SMTP relay). Existing encrypted env files must be migrated from `MS365_*` to `GOOGLE_*` before deployment.
+- **Rollback:** Restore the previous `MS365_*` contract and redeploy Grafana.
+
 ## [2026-05-08] — VictoriaMetrics backup: fix autonomous env loading, rclone upload, and alert age logic
 - **Context:** `SERVER_ENV=prod bash scripts/backup-victoriametrics-volume.sh` падав під час завантаження decrypted `env.prod.enc` з `/dev/shm`: Bash `source` ламався на dotenv-значенні `MARIADB_EXPORTER_DSN` з `tcp(...)`.
 - **Change:**
@@ -103,3 +191,10 @@
 - **Verification:** YAML parse для `blackbox/blackbox.yml`, `victoria-metrics/scrape-config.tmpl.yml`, `docker-compose.yml`, `grafana/provisioning/alerting/alert-rules.yml` і `alerting/rules/traefik.yml` успішний; `blackbox_exporter --config.check` успішний; internal Traefik smoke checks для Koha OPAC/staff, Matomo, DSpace UI і DSpace API повернули `200 OK`; `git diff --check` успішний. Runtime deploy/reload ще не виконувався в межах цієї ітерації.
 - **Risks:** Internal probes більше не перевіряють Cloudflare edge availability; для public uptime потрібен окремий зовнішній моніторинг з незалежної мережі. Host headers у `blackbox/blackbox.yml` мають відповідати Traefik router hostnames.
 - **Rollback:** Повернути blackbox jobs на public URL targets, прибрати `proxy-net` з `blackbox-exporter`, видалити `http_2xx_internal_*` modules і повернути попередній Traefik latency expression.
+
+## [2026-08-28] — SMTP2Graph metrics, Grafana alerts, and synthetic delivery probe
+- **Context:** SMTP2Graph gateway exposes private Prometheus metrics on encrypted overlay port `9464`; monitoring stack needed scrape, dashboard, independent email alerting and controlled delivery verification.
+- **Change:** VictoriaMetrics joins the external SMTP2Graph overlay and scrapes `smtp2graph-gateway` with canonical labels. Added SMTP2Graph Grafana dashboard, provisioning alert rules, Prometheus-style catalog rules, runbook, and a Swarm-scheduled STARTTLS/AUTH synthetic runner that verifies Graph delivery counter growth through internal `victoriametrics:8428` service DNS and publishes node-exporter textfile status metrics. Grafana alert delivery remains on independent MS365 SMTP. Counter-based alert expressions use `or vector(0)` to avoid startup `DatasourceNoData` notifications.
+- **Verification:** Static YAML/JSON, renderer contract and synthetic probe unit tests are included in the repository. Production overlay inspection, SOPS secret population and live alert delivery remain separate authorised operations.
+- **Risks:** Synthetic probe requires an allowlisted host source CIDR and non-production recipient; missing initial probe metrics intentionally trigger the synthetic-delivery alert.
+- **Rollback:** Remove SMTP2Graph scrape/dashboard/alert assets and systemd units, detach VictoriaMetrics from the SMTP2Graph overlay, then redeploy the monitoring stack.

@@ -21,6 +21,7 @@ services:
     networks:
       - monitoring_net
       - proxy-net
+      - smtp2graph_internal_enc
 
   node-exporter:
     image: ${NODE_EXPORTER_IMAGE}
@@ -161,11 +162,12 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
       GF_AUTH_OAUTH_ALLOW_INSECURE_EMAIL_LOOKUP: ${GF_AUTH_OAUTH_ALLOW_INSECURE_EMAIL_LOOKUP:-false}
       GF_SMTP_ENABLED: ${GRAFANA_SMTP_ENABLED:-false}
-      GF_SMTP_HOST: ${MS365_SMTP_HOST:-}:${MS365_SMTP_PORT:-587}
-      GF_SMTP_USER: ${MS365_SMTP_USER:-}
-      GF_SMTP_PASSWORD: ${MS365_SMTP_PASSWORD:-}
-      GF_SMTP_FROM_ADDRESS: ${MS365_ALERT_EMAIL_FROM:-}
-      GF_SMTP_FROM_NAME: ${MS365_ALERT_FROM_NAME:-KDI Monitoring}
+      GF_SMTP_HOST: ${GOOGLE_SMTP_HOST:-smtp.gmail.com}:${GOOGLE_SMTP_PORT:-587}
+      GF_SMTP_USER: ${GOOGLE_SMTP_USER:-}
+      GF_SMTP_PASSWORD: ${GOOGLE_SMTP_PASSWORD:-}
+      GF_SMTP_FROM_ADDRESS: ${GOOGLE_ALERT_EMAIL_FROM:-}
+      GF_SMTP_FROM_NAME: ${GOOGLE_ALERT_FROM_NAME:-KDI Monitoring}
+      GF_SMTP_STARTTLS_POLICY: MandatoryStartTLS
       VM_DATASOURCE_URL: ${VM_DATASOURCE_URL}
     depends_on:
       - victoriametrics
@@ -190,17 +192,20 @@ services:
 
 networks:
   monitoring_net:
-    name: ${MONITORING_NETWORK_NAME}
+    name: ${MONITORING_NETWORK_NAME:-monitoring_net}
     driver: bridge
   kohanet:
-    name: ${KOHANET_NETWORK_NAME}
+    name: ${KOHANET_NETWORK_NAME:-kohanet}
     external: true
   dspacenet:
-    name: ${DSPACENET_NETWORK_NAME}
+    name: ${DSPACENET_NETWORK_NAME:-dspacenet}
     external: true
   proxy-net:
-    name: ${PROXY_NET_NETWORK_NAME}
+    name: ${PROXY_NET_NETWORK_NAME:-proxy-net}
     external: true
   matomonet:
     name: ${MATOMO_NETWORK_NAME:-matomo-analytics_matomonet}
+    external: true
+  smtp2graph_internal_enc:
+    name: ${SMTP2GRAPH_OVERLAY_NETWORK:-smtp2graph_internal_enc}
     external: true

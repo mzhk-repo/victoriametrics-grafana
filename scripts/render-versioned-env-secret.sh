@@ -13,9 +13,10 @@ RENDERED_SECRET_NAMES=()
 
 SECRET_SPECS=(
   "GRAFANA_ADMIN_PASSWORD|GRAFANA_ADMIN_PASSWORD_SECRET_NAME|GRAFANA_ADMIN_PASSWORD_SECRET_BASE|grafana_admin_password|Grafana admin password secret"
-  "MS365_SMTP_PASSWORD|MS365_SMTP_PASSWORD_SECRET_NAME|MS365_SMTP_PASSWORD_SECRET_BASE|grafana_smtp_password|Grafana SMTP password secret"
+  "GOOGLE_SMTP_PASSWORD|GOOGLE_SMTP_PASSWORD_SECRET_NAME|GOOGLE_SMTP_PASSWORD_SECRET_BASE|grafana_smtp_password|Grafana SMTP password secret"
   "MARIADB_EXPORTER_PASSWORD|MARIADB_EXPORTER_PASSWORD_SECRET_NAME|MARIADB_EXPORTER_PASSWORD_SECRET_BASE|mariadb_exporter_password|MariaDB exporter password secret"
   "MATOMO_MARIADB_EXPORTER_PASSWORD|MATOMO_MARIADB_EXPORTER_PASSWORD_SECRET_NAME|MATOMO_MARIADB_EXPORTER_PASSWORD_SECRET_BASE|matomo_mariadb_exporter_password|Matomo MariaDB exporter password secret"
+  "SMTP2GRAPH_SYNTHETIC_PASSWORD|SMTP2GRAPH_SYNTHETIC_PASSWORD_SECRET_NAME|SMTP2GRAPH_SYNTHETIC_PASSWORD_SECRET_BASE|smtp2graph_synthetic_password|SMTP2Graph synthetic runner password secret"
 )
 
 log() {
@@ -45,12 +46,21 @@ USAGE
 }
 
 cleanup() {
+  local f
   if [[ "${#SECRET_TMP_FILES[@]}" -gt 0 ]]; then
-    rm -f "${SECRET_TMP_FILES[@]}"
+    for f in "${SECRET_TMP_FILES[@]}"; do
+      if [[ -f "${f}" ]]; then
+        if command -v shred >/dev/null 2>&1; then
+          shred -u "${f}" 2>/dev/null || rm -f "${f}"
+        else
+          rm -f "${f}"
+        fi
+      fi
+    done
   fi
 }
 
-trap cleanup EXIT
+trap cleanup EXIT ERR INT TERM
 
 resolve_env_file() {
   local project_root="$1"
@@ -144,7 +154,14 @@ render_value_secret() {
   [[ -n "${secret_value}" ]] || die "${value_key} is empty or missing in ${ENV_FILE}"
   validate_secret_base "${secret_base}"
 
-  value_tmp="$(mktemp "${TMPDIR:-/tmp}/victoriametrics-secret-value.XXXXXX")"
+  local shm_dir="/tmp"
+  if [[ -d /dev/shm && -w /dev/shm ]]; then
+    shm_dir="/dev/shm"
+  elif [[ -n "${TMPDIR:-}" && -d "${TMPDIR}" && -w "${TMPDIR}" ]]; then
+    shm_dir="${TMPDIR}"
+  fi
+
+  value_tmp="$(mktemp "${shm_dir}/victoriametrics-secret-value.XXXXXX")"
   SECRET_TMP_FILES+=("${value_tmp}")
   chmod 600 "${value_tmp}"
   printf '%s' "${secret_value}" > "${value_tmp}"

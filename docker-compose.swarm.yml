@@ -6,6 +6,10 @@ services:
     mem_limit: !reset null
     memswap_limit: !reset null
     ports: !reset []
+    networks: !override
+      - monitoring_net
+      - proxy-net
+      - smtp2graph_internal_enc
     deploy:
       replicas: 1
       restart_policy:
@@ -148,11 +152,12 @@ services:
       GF_SECURITY_ADMIN_EMAIL: ${GRAFANA_ADMIN_EMAIL:-${GRAFANA_ADMIN_USER}}
       GF_AUTH_OAUTH_ALLOW_INSECURE_EMAIL_LOOKUP: ${GF_AUTH_OAUTH_ALLOW_INSECURE_EMAIL_LOOKUP:-false}
       GF_SMTP_ENABLED: ${GRAFANA_SMTP_ENABLED:-false}
-      GF_SMTP_HOST: ${MS365_SMTP_HOST:-}:${MS365_SMTP_PORT:-587}
-      GF_SMTP_USER: ${MS365_SMTP_USER:-}
-      GF_SMTP_FROM_ADDRESS: ${MS365_ALERT_EMAIL_FROM:-}
-      GF_SMTP_FROM_NAME: ${MS365_ALERT_FROM_NAME:-KDI Monitoring}
-      MS365_ALERT_EMAIL_TO: ${MS365_ALERT_EMAIL_TO:-}
+      GF_SMTP_HOST: ${GOOGLE_SMTP_HOST:-smtp.gmail.com}:${GOOGLE_SMTP_PORT:-587}
+      GF_SMTP_USER: ${GOOGLE_SMTP_USER:-}
+      GF_SMTP_FROM_ADDRESS: ${GOOGLE_ALERT_EMAIL_FROM:-}
+      GF_SMTP_FROM_NAME: ${GOOGLE_ALERT_FROM_NAME:-KDI Monitoring}
+      GF_SMTP_STARTTLS_POLICY: MandatoryStartTLS
+      GOOGLE_ALERT_EMAIL_TO: ${GOOGLE_ALERT_EMAIL_TO:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
       VM_DATASOURCE_URL: ${VM_DATASOURCE_URL}
@@ -184,21 +189,87 @@ services:
         constraints:
           - node.labels.app_zone == manager
 
+  smtp2graph-synthetic-runner:
+    image: ${SMTP2GRAPH_SYNTHETIC_RUNNER_IMAGE:-python:3.12-alpine}
+    user: "1000:1000"
+    environment:
+      SMTP2GRAPH_SYNTHETIC_HOST: ${SMTP2GRAPH_SYNTHETIC_HOST}
+      SMTP2GRAPH_SYNTHETIC_PORT: ${SMTP2GRAPH_SYNTHETIC_PORT}
+      SMTP2GRAPH_SYNTHETIC_TLS_SERVER_NAME: ${SMTP2GRAPH_SYNTHETIC_TLS_SERVER_NAME}
+      SMTP2GRAPH_SYNTHETIC_USER: ${SMTP2GRAPH_SYNTHETIC_USER}
+      SMTP2GRAPH_SYNTHETIC_SENDER: ${SMTP2GRAPH_SYNTHETIC_SENDER}
+      SMTP2GRAPH_SYNTHETIC_RECIPIENT: ${SMTP2GRAPH_SYNTHETIC_RECIPIENT}
+      SMTP2GRAPH_SYNTHETIC_DELIVERY_TIMEOUT_SECONDS: ${SMTP2GRAPH_SYNTHETIC_DELIVERY_TIMEOUT_SECONDS:-120}
+      SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS: ${SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS:-900}
+      SMTP2GRAPH_SYNTHETIC_FRESHNESS_GRACE_SECONDS: ${SMTP2GRAPH_SYNTHETIC_FRESHNESS_GRACE_SECONDS:-300}
+      VM_SYNTHETIC_QUERY_URL: http://victoriametrics:8428
+      NODE_EXPORTER_TEXTFILE_DIR: /metrics
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        export SMTP2GRAPH_SYNTHETIC_PASSWORD="$(cat /run/secrets/smtp2graph_synthetic_password)"
+        case "$${SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS}" in
+          ''|*[!0-9]*)
+            echo "ERROR: SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS must be an integer" >&2
+            exit 1
+            ;;
+        esac
+        if [ "$${SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS}" -lt 60 ]; then
+          echo "ERROR: SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS must be at least 60" >&2
+          exit 1
+        fi
+        case "$${SMTP2GRAPH_SYNTHETIC_FRESHNESS_GRACE_SECONDS}" in
+          ''|*[!0-9]*)
+            echo "ERROR: SMTP2GRAPH_SYNTHETIC_FRESHNESS_GRACE_SECONDS must be a non-negative integer" >&2
+            exit 1
+            ;;
+        esac
+        while true; do
+          python3 /app/smtp2graph-synthetic-probe.py || true
+          sleep "$${SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS}"
+        done
+    volumes:
+      - ${NODE_EXPORTER_TEXTFILE_DIR:-./.data/node-exporter-textfile}:/metrics
+      - ./scripts/smtp2graph-synthetic-probe.py:/app/smtp2graph-synthetic-probe.py:ro
+    networks: !override
+      - monitoring_net
+      - smtp2graph_internal_enc
+    secrets:
+      - source: smtp2graph_synthetic_password
+        target: smtp2graph_synthetic_password
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      placement:
+        constraints:
+          - node.labels.app_zone == manager
+
 secrets:
   grafana_admin_password:
     external: true
     name: ${GRAFANA_ADMIN_PASSWORD_SECRET_NAME}
   grafana_smtp_password:
     external: true
-    name: ${MS365_SMTP_PASSWORD_SECRET_NAME}
+    name: ${GOOGLE_SMTP_PASSWORD_SECRET_NAME}
   mariadb_exporter_password:
     external: true
     name: ${MARIADB_EXPORTER_PASSWORD_SECRET_NAME}
   matomo_mariadb_exporter_password:
     external: true
     name: ${MATOMO_MARIADB_EXPORTER_PASSWORD_SECRET_NAME}
+  smtp2graph_synthetic_password:
+    external: true
+    name: ${SMTP2GRAPH_SYNTHETIC_PASSWORD_SECRET_NAME}
 
 networks:
   monitoring_net:
     external: true
     name: ${MONITORING_NETWORK_NAME}
+  smtp2graph_internal_enc:
+    external: true
+    name: ${SMTP2GRAPH_OVERLAY_NETWORK:?SMTP2GRAPH_OVERLAY_NETWORK is required}

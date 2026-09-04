@@ -31,10 +31,11 @@ bash scripts/check-internal-ports-policy.sh
 #### Бізнес-логіка
 
 - Основний Swarm orchestrator для CI/CD.
-- Перевіряє env-файл, оновлює Swarm secrets через Ansible якщо задано `INFRA_REPO_PATH`.
+- Підтримує CLI-аргументи (`--env-file`, `--deploy`, `--apply`, `--check`) та завантаження розшифрованого середовища у `/dev/shm`.
 - Створює/перевіряє overlay network `MONITORING_NETWORK_NAME`.
+- Перед deploy перевіряє, що `SMTP2GRAPH_OVERLAY_NETWORK` уже існує як encrypted external Swarm overlay; monitoring deploy не створює і не змінює gateway network.
 - Перед deploy запускає `init-volumes.sh` і `render-scrape-config.sh`.
-- Рендерить immutable Swarm secrets через `render-versioned-env-secret.sh` і дописує generated `*_SECRET_NAME` у тимчасовий decrypted env-файл.
+- Рендерить immutable Swarm secrets через `render-versioned-env-secret.sh` напряму в пам'яті (`/dev/shm`) і дописує generated `*_SECRET_NAME` у тимчасовий decrypted env-файл.
 - Рендерить merged manifest через `docker compose --env-file ... config` і виконує `docker stack deploy`.
 
 #### Manual execution
@@ -73,7 +74,7 @@ ORCHESTRATOR_ENV_FILE=/tmp/env.decrypted bash scripts/init-volumes.sh
 #### Бізнес-логіка
 
 - Рендерить `victoria-metrics/scrape-config.yml` із template.
-- Читає `KOHA_OPAC_URL`, `KOHA_STAFF_URL`, `MATOMO_URL`, `DSPACE_UI_URL`, `DSPACE_API_URL`, `CLOUDFLARE_TUNNEL_METRICS_TARGET`, `CLOUDFLARE_TUNNEL_NAME` через `ORCHESTRATOR_ENV_FILE` або `--env-file` без `source`.
+- Читає `KOHA_OPAC_URL`, `KOHA_STAFF_URL`, `MATOMO_URL`, `DSPACE_UI_URL`, `DSPACE_API_URL`, `CLOUDFLARE_TUNNEL_METRICS_TARGET`, `CLOUDFLARE_TUNNEL_NAME` і `SMTP2GRAPH_METRICS_TARGET` через `ORCHESTRATOR_ENV_FILE` або `--env-file` без `source`.
 - Website blackbox jobs рендеряться як internal probes до `http://traefik...`; public URL з env лишається в labels `public_instance`/`instance` для alert context.
 - Пише результат у tmp-файл, звіряє з поточним конфігом через `cmp`/checksum і не перезаписує файл, якщо змін немає.
 
@@ -84,6 +85,22 @@ ORCHESTRATOR_ENV_FILE=/tmp/env.decrypted bash scripts/render-scrape-config.sh
 bash scripts/render-scrape-config.sh --env-file .env
 ```
 
+### SMTP2Graph synthetic runner
+
+- `monitoring_smtp2graph-synthetic-runner` запускається в Swarm через внутрішній loop, а не через host systemd; інтервал задає `SMTP2GRAPH_SYNTHETIC_INTERVAL_SECONDS` (default `900`, мінімум `60`). Freshness-поріг алерту runner експортує автоматично як інтервал + `SMTP2GRAPH_SYNTHETIC_FRESHNESS_GRACE_SECONDS` (default `300`).
+- Runner підключений до `monitoring_net` і encrypted `smtp2graph_internal_enc`, запитує `victoriametrics:8428` за service DNS і читає SMTP password лише з versioned Docker Secret.
+- `SMTP2GRAPH_SYNTHETIC_HOST` має бути DNS alias SMTP2Graph gateway у encrypted overlay (поточний: `gateway`); `127.0.0.1` вказує на runner і призводить до `ConnectionRefusedError`.
+- Пише тільки агреговані status/timestamp metrics у `NODE_EXPORTER_TEXTFILE_DIR`; не друкує credentials, SMTP payload, recipient чи server responses.
+
+#### Test execution
+
+```bash
+bash tests/test-observability-config.sh
+tests/integration/test-synthetic-and-metrics.sh
+```
+
+`test-synthetic-and-metrics.sh` запускає одну allowlisted synthetic email-перевірку через активний Swarm runner; виконуйте його лише на Swarm manager з доступом до Docker daemon.
+
 ### `scripts/render-versioned-env-secret.sh`
 
 #### Бізнес-логіка
@@ -91,7 +108,7 @@ bash scripts/render-scrape-config.sh --env-file .env
 - Створює Docker secrets з hash-based назвами для Swarm runtime secrets.
 - Рендерить:
   `GRAFANA_ADMIN_PASSWORD_SECRET_NAME`,
-  `MS365_SMTP_PASSWORD_SECRET_NAME`,
+  `GOOGLE_SMTP_PASSWORD_SECRET_NAME`,
   `MARIADB_EXPORTER_PASSWORD_SECRET_NAME`,
   `MATOMO_MARIADB_EXPORTER_PASSWORD_SECRET_NAME`.
 - Читає значення з `ORCHESTRATOR_ENV_FILE` або `--env-file` без `source`.

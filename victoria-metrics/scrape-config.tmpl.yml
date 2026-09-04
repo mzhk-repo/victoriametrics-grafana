@@ -81,6 +81,16 @@ scrape_configs:
           component: tunnel
           tunnel: __CLOUDFLARE_TUNNEL_NAME__
 
+  - job_name: smtp2graph-gateway
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - __SMTP2GRAPH_METRICS_TARGET__
+        labels:
+          env: prod
+          service: smtp2graph
+          component: gateway
+
   - job_name: blackbox-koha-opac
     metrics_path: /probe
     params:
