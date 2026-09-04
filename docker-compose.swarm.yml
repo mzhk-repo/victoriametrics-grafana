@@ -191,7 +191,6 @@ services:
 
   smtp2graph-synthetic-runner:
     image: ${SMTP2GRAPH_SYNTHETIC_RUNNER_IMAGE:-python:3.12-alpine}
-    user: "1000:1000"
     environment:
       SMTP2GRAPH_SYNTHETIC_HOST: ${SMTP2GRAPH_SYNTHETIC_HOST}
       SMTP2GRAPH_SYNTHETIC_PORT: ${SMTP2GRAPH_SYNTHETIC_PORT}
