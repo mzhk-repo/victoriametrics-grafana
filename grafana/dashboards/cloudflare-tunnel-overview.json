@@ -706,7 +706,7 @@
             "uid": "victoriametrics"
           },
           "editorMode": "code",
-          "expr": "sum by (conn_index, reason) (rate(quic_client_lost_packets{job=\"cloudflare-tunnel\",env=\"prod\",tunnel=~\"$tunnel\",instance=~\"$instance\"}[$__rate_interval]))",
+          "expr": "sum by (conn_index, reason) (rate(quic_client_lost_packets{job=\"cloudflare-tunnel\",env=\"prod\",tunnel=~\"$tunnel\",instance=~\"$instance\"}[$__rate_interval])) or on() label_replace(0 * max(up{job=\"cloudflare-tunnel\",env=\"prod\",tunnel=~\"$tunnel\",instance=~\"$instance\"} == 1), \"reason\", \"none\", \"\", \"\")",
           "instant": false,
           "legendFormat": "conn {{conn_index}} {{reason}}",
           "range": true,

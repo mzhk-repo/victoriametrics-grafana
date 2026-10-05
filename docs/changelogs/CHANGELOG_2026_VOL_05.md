@@ -1,3 +1,11 @@
+## [2026-10-05] — Cloudflare Tunnel dashboard: show zero when QUIC has no loss
+
+- **Context:** The QUIC lost packets panel showed `No Data` when the scrape target was healthy but no packet-loss counter series existed.
+- **Change:** Added a zero fallback conditioned on the selected Cloudflare scrape target being up; target outages still return no data.
+- **Verification:** `jq -e` confirms the panel expression is present and `git diff --check` passes. Runtime behavior remains unverified because VictoriaMetrics is not reachable from this environment.
+- **Risks:** None beyond normal dashboard provisioning delay.
+- **Rollback:** Restore the previous expression in `grafana/dashboards/cloudflare-tunnel-overview.json`.
+
 ## [2026-09-04] — SMTP2Graph synthetic runner: restore textfile write access
 
 - **Context:** The Swarm runner was forced to UID/GID `1000:1000`, while the deployed Node Exporter textfile directory was owned by `1001:4` with mode `0775`; probe attempts failed with `PermissionError` creating `/metrics/tmp*`, so no synthetic status metric was published and the delivery alert remained stale.
