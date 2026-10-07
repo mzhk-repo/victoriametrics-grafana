@@ -91,7 +91,7 @@ groups:
           runbook: docs/runbooks/vm-backup-restore.md
 
       - alert: IntegratorRestoreCheckStale
-        expr: (time() - cover_state_restore_check_last_success_timestamp_seconds{job="node-exporter",env="prod",service="host",exported_service="integrator"}) > 691200
+        expr: (time() - kdv_cover_state_restore_last_success_timestamp_seconds{job="node-exporter",env="prod",service="host",exported_service="kdv-integrator"}) > 691200
         for: 30m
         labels:
           severity: warning

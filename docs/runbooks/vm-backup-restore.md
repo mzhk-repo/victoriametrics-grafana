@@ -3,10 +3,12 @@
 ## Тригери
 - `VictoriaMetricsBackupStale`
 - `VictoriaMetricsRestoreSmokeStale`
+- `IntegratorRestoreCheckStale`
 
 ## Що означає
 - Backup не був успішним протягом очікуваного вікна.
 - Smoke restore test не проходив успішно в очікуваному вікні.
+- KDV Integrator не опублікував успішну перевірку відновлення cover state протягом 8 днів.
 
 ## Дії
 1. Перевірити наявність backup-файлів у `VM_BACKUP_DIR`:
@@ -21,8 +23,13 @@
 6. Перевірити в VictoriaMetrics:
    - `curl -s "http://127.0.0.1:8428/api/v1/query?query=kdi_vm_backup_last_status"`
    - `curl -s "http://127.0.0.1:8428/api/v1/query?query=kdi_vm_restore_smoke_last_status"`
+7. Для `IntegratorRestoreCheckStale` перевірити producer і метрику:
+   - `sudo SERVER_ENV=prod scripts/test_backup_cover_state.sh`
+   - `curl -s http://127.0.0.1:9100/metrics | grep kdv_cover_state_restore_last_success_timestamp_seconds`
+   - `curl -s 'http://127.0.0.1:8428/api/v1/query?query=kdv_cover_state_restore_last_success_timestamp_seconds{job="node-exporter",env="prod",service="host",exported_service="kdv-integrator"}'`
 
 ## Критерій відновлення
 - `kdi_vm_backup_last_status=1` і `kdi_vm_backup_last_success_timestamp_seconds` оновився.
 - `kdi_vm_restore_smoke_last_status=1` і `kdi_vm_restore_smoke_last_success_timestamp_seconds` оновився.
+- Для інтегратора `kdv_cover_state_restore_last_status=1` і `kdv_cover_state_restore_last_success_timestamp_seconds` оновився.
 - Alert переходить у `Normal` після evaluation window.

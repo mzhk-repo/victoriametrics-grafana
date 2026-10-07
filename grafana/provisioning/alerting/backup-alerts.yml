@@ -368,7 +368,7 @@ groups:
                 type: prometheus
                 uid: victoriametrics
               editorMode: code
-              expr: (time() - cover_state_restore_check_last_success_timestamp_seconds{job="node-exporter",env="prod",service="host",exported_service="integrator"})
+              expr: (time() - kdv_cover_state_restore_last_success_timestamp_seconds{job="node-exporter",env="prod",service="host",exported_service="kdv-integrator"})
               instant: true
               intervalMs: 1000
               maxDataPoints: 43200
