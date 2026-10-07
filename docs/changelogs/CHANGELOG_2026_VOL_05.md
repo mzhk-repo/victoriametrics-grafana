@@ -206,3 +206,10 @@
 - **Verification:** Static YAML/JSON, renderer contract and synthetic probe unit tests are included in the repository. Production overlay inspection, SOPS secret population and live alert delivery remain separate authorised operations.
 - **Risks:** Synthetic probe requires an allowlisted host source CIDR and non-production recipient; missing initial probe metrics intentionally trigger the synthetic-delivery alert.
 - **Rollback:** Remove SMTP2Graph scrape/dashboard/alert assets and systemd units, detach VictoriaMetrics from the SMTP2Graph overlay, then redeploy the monitoring stack.
+## [2026-10-07] — KDV Integrator cover state restore check alert
+
+- **Context:** The `cover_state_restore_check.prom` textfile metric needed the same stale-success alert coverage as Koha, DSpace, and Matomo restore checks.
+- **Change:** Added `IntegratorRestoreCheckStale` to Grafana provisioning and Prometheus-style alert rules. It warns when `cover_state_restore_check_last_success_timestamp_seconds` is older than 8 days; added the rule to the alert catalog.
+- **Verification:** YAML parse and repository configuration checks are pending.
+- **Risks:** Missing or incorrectly labeled metric data raises the alert because Grafana's no-data state is alerting.
+- **Rollback:** Remove `integrator-restore-check-stale` and `IntegratorRestoreCheckStale` from the alert rule files and catalog.

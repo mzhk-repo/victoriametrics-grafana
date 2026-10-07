@@ -45,6 +45,7 @@
 | DSpaceRestoreSmokeStale | warning | 30m | `docs/runbooks/vm-backup-restore.md` |
 | KohaBackupStale | critical | 30m | `docs/runbooks/vm-backup-restore.md` |
 | KohaRestoreSmokeStale | warning | 30m | `docs/runbooks/vm-backup-restore.md` |
+| IntegratorRestoreCheckStale | warning | 30m | `docs/runbooks/vm-backup-restore.md` |
 | WebsiteDown | critical | 2m | `docs/runbooks/website-probe.md` |
 | WebsiteHighLatency | warning | 5m | `docs/runbooks/website-probe.md` |
 | CloudflareTunnelMetricsDown | critical | 2m | `docs/runbooks/cloudflare-tunnel.md` |

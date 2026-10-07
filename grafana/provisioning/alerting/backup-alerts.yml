@@ -353,3 +353,62 @@ groups:
           severity: warning
           env: prod
           service: koha
+
+      - uid: integrator-restore-check-stale
+        title: IntegratorRestoreCheckStale
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1209600
+              to: 0
+            datasourceUid: victoriametrics
+            model:
+              datasource:
+                type: prometheus
+                uid: victoriametrics
+              editorMode: code
+              expr: (time() - cover_state_restore_check_last_success_timestamp_seconds{job="node-exporter",env="prod",service="host",exported_service="integrator"})
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 691200
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: Alerting
+        execErrState: Error
+        for: 30m
+        annotations:
+          summary: KDV Integrator cover state restore check is stale (no successful check in the last 8 days)
+          description: The weekly cover state restore check has not completed successfully within the expected 8-day window.
+          runbook: docs/runbooks/vm-backup-restore.md
+        labels:
+          severity: warning
+          env: prod
+          service: integrator
