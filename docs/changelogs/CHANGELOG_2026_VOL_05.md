@@ -1,3 +1,11 @@
+## [2026-10-05] — Cloudflare Tunnel dashboard: show zero when QUIC has no loss
+
+- **Context:** The QUIC lost packets panel showed `No Data` when the scrape target was healthy but no packet-loss counter series existed.
+- **Change:** Added a zero fallback conditioned on the selected Cloudflare scrape target being up; target outages still return no data.
+- **Verification:** `jq -e` confirms the panel expression is present and `git diff --check` passes. Runtime behavior remains unverified because VictoriaMetrics is not reachable from this environment.
+- **Risks:** None beyond normal dashboard provisioning delay.
+- **Rollback:** Restore the previous expression in `grafana/dashboards/cloudflare-tunnel-overview.json`.
+
 ## [2026-09-04] — SMTP2Graph synthetic runner: restore textfile write access
 
 - **Context:** The Swarm runner was forced to UID/GID `1000:1000`, while the deployed Node Exporter textfile directory was owned by `1001:4` with mode `0775`; probe attempts failed with `PermissionError` creating `/metrics/tmp*`, so no synthetic status metric was published and the delivery alert remained stale.
@@ -206,6 +214,14 @@
 - **Verification:** Static YAML/JSON, renderer contract and synthetic probe unit tests are included in the repository. Production overlay inspection, SOPS secret population and live alert delivery remain separate authorised operations.
 - **Risks:** Synthetic probe requires an allowlisted host source CIDR and non-production recipient; missing initial probe metrics intentionally trigger the synthetic-delivery alert.
 - **Rollback:** Remove SMTP2Graph scrape/dashboard/alert assets and systemd units, detach VictoriaMetrics from the SMTP2Graph overlay, then redeploy the monitoring stack.
+## [2026-10-07] — Fix KDV Integrator restore check metric matcher
+
+- **Context:** `IntegratorRestoreCheckStale` returned `NoData` after a successful restore check because its query referenced a metric name and service label the producer does not emit.
+- **Change:** Updated both alert rule definitions to query `kdv_cover_state_restore_last_success_timestamp_seconds` with `exported_service="kdv-integrator"`; documented producer and VictoriaMetrics checks in the runbook.
+- **Verification:** Static YAML and repository configuration checks are pending; live metric ingestion remains to be confirmed after provisioning.
+- **Risks:** Alert remains `NoData` until the corrected rule is provisioned and the producer metric is scraped.
+- **Rollback:** Restore the previous expression in `backup-alerts.yml` and `monitoring.yml`.
+
 ## [2026-10-07] — KDV Integrator cover state restore check alert
 
 - **Context:** The `cover_state_restore_check.prom` textfile metric needed the same stale-success alert coverage as Koha, DSpace, and Matomo restore checks.
@@ -213,3 +229,11 @@
 - **Verification:** YAML parse and repository configuration checks are pending.
 - **Risks:** Missing or incorrectly labeled metric data raises the alert because Grafana's no-data state is alerting.
 - **Rollback:** Remove `integrator-restore-check-stale` and `IntegratorRestoreCheckStale` from the alert rule files and catalog.
+
+## [2026-10-08] — Reduce Cloudflare request error alert flapping
+
+- **Context:** Repeated `CloudflareTunnelRequestErrorsHigh` episodes correlated with `cloudflared` `context canceled` events and Traefik 499 responses on scanner-like paths; no coincident 5xx appeared during the 2026-10-08 episodes. Two isolated Grafana `/api/live/ws` 504s occurred on 2026-10-07.
+- **Change:** Increased the alert `for` duration from 5m to 15m in Grafana provisioning and Prometheus-style rules; updated the catalog and runbook to distinguish client cancellations from persistent origin errors.
+- **Verification:** YAML parse, `bash tests/test-observability-config.sh`, and `git diff --check` passed. Targeted Grafana service update converged; logs show alert provisioning finished, and `/api/health` returned `database: ok`.
+- **Risks:** Genuine sustained origin errors will notify 10m later; episodes shorter than 15m will no longer page as warnings.
+- **Rollback:** Restore `for: 5m` in both Cloudflare request error rules and the catalog.
