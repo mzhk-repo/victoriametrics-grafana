@@ -229,3 +229,11 @@
 - **Verification:** YAML parse and repository configuration checks are pending.
 - **Risks:** Missing or incorrectly labeled metric data raises the alert because Grafana's no-data state is alerting.
 - **Rollback:** Remove `integrator-restore-check-stale` and `IntegratorRestoreCheckStale` from the alert rule files and catalog.
+
+## [2026-10-08] — Reduce Cloudflare request error alert flapping
+
+- **Context:** Repeated `CloudflareTunnelRequestErrorsHigh` episodes correlated with `cloudflared` `context canceled` events and Traefik 499 responses on scanner-like paths; no coincident 5xx appeared during the 2026-10-08 episodes. Two isolated Grafana `/api/live/ws` 504s occurred on 2026-10-07.
+- **Change:** Increased the alert `for` duration from 5m to 15m in Grafana provisioning and Prometheus-style rules; updated the catalog and runbook to distinguish client cancellations from persistent origin errors.
+- **Verification:** YAML parse, `bash tests/test-observability-config.sh`, and `git diff --check` passed. Targeted Grafana service update converged; logs show alert provisioning finished, and `/api/health` returned `database: ok`.
+- **Risks:** Genuine sustained origin errors will notify 10m later; episodes shorter than 15m will no longer page as warnings.
+- **Rollback:** Restore `for: 5m` in both Cloudflare request error rules and the catalog.

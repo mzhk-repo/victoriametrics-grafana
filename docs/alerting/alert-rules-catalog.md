@@ -50,7 +50,7 @@
 | WebsiteHighLatency | warning | 5m | `docs/runbooks/website-probe.md` |
 | CloudflareTunnelMetricsDown | critical | 2m | `docs/runbooks/cloudflare-tunnel.md` |
 | CloudflareTunnelHAConnectionsLow | warning | 5m | `docs/runbooks/cloudflare-tunnel.md` |
-| CloudflareTunnelRequestErrorsHigh | warning | 5m | `docs/runbooks/cloudflare-tunnel.md` |
+| CloudflareTunnelRequestErrorsHigh | warning | 15m | `docs/runbooks/cloudflare-tunnel.md` |
 | CloudflareTunnelQUICPacketLossHigh | warning | 5m | `docs/runbooks/cloudflare-tunnel.md` |
 | DataVolumesFreeSpaceWarning | warning | 5m | `docs/runbooks/disk-space-low.md` |
 | DataVolumesFreeSpaceCritical | critical | 5m | `docs/runbooks/disk-space-low.md` |

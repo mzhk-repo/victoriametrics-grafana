@@ -173,7 +173,7 @@ groups:
               type: threshold
         noDataState: NoData
         execErrState: Error
-        for: 5m
+        for: 15m
         annotations:
           summary: Cloudflare Tunnel origin proxy error rate exceeded 1%
           runbook: docs/runbooks/cloudflare-tunnel.md
