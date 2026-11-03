@@ -245,3 +245,11 @@
 - **Verification:** Static configuration checks performed locally; live ingestion and Grafana provisioning require runtime verification.
 - **Risks:** Delays in the scheduled backup chain can exceed the 26-hour window; rsync success does not prove restore readiness.
 - **Rollback:** Remove the rule from both alert files and its catalog and runbook entries.
+
+## [2026-11-03] — Restart Swarm services when mounted configuration changes
+
+- **Context:** Swarm does not detect changes to Grafana provisioning and dashboard bind mounts.
+- **Change:** Deploy includes checksums of mounted Grafana, VictoriaMetrics and Blackbox Exporter configuration in their task environments, triggering a service update when content changes.
+- **Verification:** Shell syntax and checksum behavior checked locally; Swarm deployment remains to be verified.
+- **Risks:** The first deployment introduces checksums and updates all three services; subsequent changes to these files restart the respective service.
+- **Rollback:** Remove checksum generation and the three checksum environment entries from the Swarm manifest.

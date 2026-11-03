@@ -181,6 +181,27 @@ ensure_encrypted_external_swarm_overlay() {
   log "Using encrypted external SMTP2Graph overlay '${network_name}'"
 }
 
+config_checksum() {
+  python3 - "$@" <<'PYCODE'
+import hashlib
+import sys
+from pathlib import Path
+
+h = hashlib.sha256()
+for arg in sys.argv[1:]:
+    root = Path(arg)
+    if not root.exists():
+        raise SystemExit(f"Configuration path does not exist: {root}")
+    files = sorted(p for p in root.rglob('*') if p.is_file()) if root.is_dir() else [root]
+    for path in files:
+        name = str(path.relative_to(root)) if root.is_dir() else root.name
+        data = path.read_bytes()
+        h.update(len(name.encode()).to_bytes(8, 'big') + name.encode())
+        h.update(len(data).to_bytes(8, 'big') + data)
+print(h.hexdigest())
+PYCODE
+}
+
 cleanup_deploy_artifacts() {
   if [[ -n "${raw_manifest:-}" && -f "${raw_manifest}" ]]; then
     rm -f "${raw_manifest}"
@@ -192,7 +213,7 @@ cleanup_deploy_artifacts() {
 }
 
 deploy_swarm() {
-  local compose_file swarm_file scrape_config_file scrape_config_checksum_before scrape_config_checksum_after scrape_config_changed vm_service_name smtp2graph_overlay_network
+  local compose_file swarm_file smtp2graph_overlay_network grafana_provisioning_dir grafana_dashboards_dir vm_scrape_config_path
 
   compose_file="$(detect_compose_file)"
   swarm_file="docker-compose.swarm.yml"
@@ -251,23 +272,16 @@ deploy_swarm() {
   log "Initializing bind-mount directories"
   ORCHESTRATOR_ENV_FILE="${ENV_FILE}" bash scripts/init-volumes.sh
 
-  scrape_config_file="${PROJECT_ROOT}/victoria-metrics/scrape-config.yml"
-  scrape_config_checksum_before=""
-  if [[ -f "${scrape_config_file}" ]]; then
-    scrape_config_checksum_before="$(sha256sum "${scrape_config_file}" | awk '{print $1}')"
-  fi
-
   log "Rendering VictoriaMetrics scrape config"
   ORCHESTRATOR_ENV_FILE="${ENV_FILE}" bash scripts/render-scrape-config.sh
 
-  scrape_config_checksum_after=""
-  if [[ -f "${scrape_config_file}" ]]; then
-    scrape_config_checksum_after="$(sha256sum "${scrape_config_file}" | awk '{print $1}')"
-  fi
-  scrape_config_changed="false"
-  if [[ "${scrape_config_checksum_before}" != "${scrape_config_checksum_after}" ]]; then
-    scrape_config_changed="true"
-  fi
+  grafana_provisioning_dir="$(abs_project_path "${GRAFANA_PROVISIONING_DIR:-$(read_env_or_default_from_file GRAFANA_PROVISIONING_DIR "${ENV_FILE}" ./grafana/provisioning)}")"
+  grafana_dashboards_dir="$(abs_project_path "${GRAFANA_DASHBOARDS_DIR:-$(read_env_or_default_from_file GRAFANA_DASHBOARDS_DIR "${ENV_FILE}" ./grafana/dashboards)}")"
+  vm_scrape_config_path="$(abs_project_path "${VM_SCRAPE_CONFIG_PATH:-$(read_env_or_default_from_file VM_SCRAPE_CONFIG_PATH "${ENV_FILE}" ./victoria-metrics/scrape-config.yml)}")"
+  export GRAFANA_CONFIG_CHECKSUM VM_CONFIG_CHECKSUM BLACKBOX_CONFIG_CHECKSUM
+  GRAFANA_CONFIG_CHECKSUM="$(config_checksum "${grafana_provisioning_dir}" "${grafana_dashboards_dir}")"
+  VM_CONFIG_CHECKSUM="$(config_checksum "${vm_scrape_config_path}")"
+  BLACKBOX_CONFIG_CHECKSUM="$(config_checksum "${PROJECT_ROOT}/blackbox/blackbox.yml")"
 
   log "Rendering versioned Swarm secrets"
   ORCHESTRATOR_ENV_FILE="${ENV_FILE}" bash scripts/render-versioned-env-secret.sh \
@@ -292,18 +306,6 @@ deploy_swarm() {
 
   log "Deploying stack ${STACK_NAME}"
   docker stack deploy -c "${deploy_manifest}" "${STACK_NAME}"
-
-  vm_service_name="${STACK_NAME}_victoriametrics"
-  if [[ "${scrape_config_changed}" == "true" ]]; then
-    if docker service inspect "${vm_service_name}" >/dev/null 2>&1; then
-      log "VictoriaMetrics scrape config changed; forcing ${vm_service_name} service update to refresh file bind mount"
-      docker service update --force "${vm_service_name}" >/dev/null
-    else
-      log "VictoriaMetrics service ${vm_service_name} is not present yet; stack deploy will start it with current scrape config"
-    fi
-  else
-    log "VictoriaMetrics scrape config unchanged; skip ${vm_service_name} force update"
-  fi
 
   log "Swarm deploy completed"
 }

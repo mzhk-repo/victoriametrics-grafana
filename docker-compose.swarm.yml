@@ -1,5 +1,7 @@
 services:
   victoriametrics:
+    environment:
+      DEPLOY_CONFIG_CHECKSUM: ${VM_CONFIG_CHECKSUM:-unmanaged}
     container_name: !reset null
     restart: !reset null
     env_file: !reset []
@@ -53,6 +55,8 @@ services:
         constraints:
           - node.labels.app_zone == manager
   blackbox-exporter:
+    environment:
+      DEPLOY_CONFIG_CHECKSUM: ${BLACKBOX_CONFIG_CHECKSUM:-unmanaged}
     container_name: !reset null
     restart: !reset null
     deploy:
@@ -138,6 +142,7 @@ services:
     depends_on: !reset []
     env_file: !reset []
     environment: !override
+      DEPLOY_CONFIG_CHECKSUM: ${GRAFANA_CONFIG_CHECKSUM:-unmanaged}
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_AUTH_DISABLE_LOGIN_FORM: ${GF_AUTH_DISABLE_LOGIN_FORM:-false}
       GF_AUTH_AZUREAD_ENABLED: ${GF_AUTH_AZUREAD_ENABLED:-false}
