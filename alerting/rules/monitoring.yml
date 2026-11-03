@@ -35,6 +35,17 @@ groups:
           summary: VictoriaMetrics backup is stale (no successful backup in the last 26h)
           runbook: docs/runbooks/vm-backup-restore.md
 
+      - alert: KDIRemoteBackupStale
+        expr: (time() - kdi_prod_remote_backup_last_success_timestamp_seconds{job="node-exporter",env="prod",service="host"}) > 93600
+        for: 10m
+        labels:
+          severity: critical
+          env: prod
+          service: monitoring
+        annotations:
+          summary: KDI remote backup is stale (no successful backup in the last 26h)
+          runbook: docs/runbooks/kdi-remote-backup.md
+
       - alert: VictoriaMetricsRestoreSmokeStale
         expr: (time() - kdi_vm_restore_smoke_last_success_timestamp_seconds{job="node-exporter",env="prod",exported_service="monitoring"}) > 691200
         for: 30m

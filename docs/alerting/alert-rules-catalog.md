@@ -39,6 +39,7 @@
 | TraefikHighLatency | warning | 5m | `docs/runbooks/monitoring-down.md` |
 | VictoriaMetricsDown | critical | 2m | `docs/runbooks/monitoring-down.md` |
 | AnyTargetDown | warning | 2m | `docs/runbooks/monitoring-down.md` |
+| KDIRemoteBackupStale | critical | 10m | `docs/runbooks/kdi-remote-backup.md` |
 | VictoriaMetricsBackupStale | critical | 10m | `docs/runbooks/vm-backup-restore.md` |
 | VictoriaMetricsRestoreSmokeStale | warning | 30m | `docs/runbooks/vm-backup-restore.md` |
 | DSpaceBackupStale | critical | 30m | `docs/runbooks/vm-backup-restore.md` |

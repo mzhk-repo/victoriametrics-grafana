@@ -237,3 +237,11 @@
 - **Verification:** YAML parse, `bash tests/test-observability-config.sh`, and `git diff --check` passed. Targeted Grafana service update converged; logs show alert provisioning finished, and `/api/health` returned `database: ok`.
 - **Risks:** Genuine sustained origin errors will notify 10m later; episodes shorter than 15m will no longer page as warnings.
 - **Rollback:** Restore `for: 5m` in both Cloudflare request error rules and the catalog.
+
+## [2026-11-03] — Alert on stale KDI remote backup
+
+- **Context:** The scheduled rsync publishes its last successful remote backup timestamp via Node Exporter.
+- **Change:** Added critical `KDIRemoteBackupStale` after 26 hours without success, with a diagnostic runbook. Grafana alerts on missing data.
+- **Verification:** Static configuration checks performed locally; live ingestion and Grafana provisioning require runtime verification.
+- **Risks:** Delays in the scheduled backup chain can exceed the 26-hour window; rsync success does not prove restore readiness.
+- **Rollback:** Remove the rule from both alert files and its catalog and runbook entries.
