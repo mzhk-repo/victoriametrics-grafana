@@ -175,11 +175,11 @@ groups:
           - refId: C
             relativeTimeRange: {from: 0, to: 0}
             datasourceUid: __expr__
-            model: {conditions: [{evaluator: {params: [30], type: lt}, operator: {type: and}, query: {params: [A]}, reducer: {params: [], type: last}, type: query}], datasource: {type: __expr__, uid: __expr__}, expression: A, intervalMs: 1000, maxDataPoints: 43200, refId: C, type: threshold}
+            model: {conditions: [{evaluator: {params: [5], type: lt}, operator: {type: and}, query: {params: [A]}, reducer: {params: [], type: last}, type: query}], datasource: {type: __expr__, uid: __expr__}, expression: A, intervalMs: 1000, maxDataPoints: 43200, refId: C, type: threshold}
         noDataState: NoData
         execErrState: Error
         for: 15m
-        annotations: {summary: SMTP2Graph TLS certificate expires in less than 30 days, runbook: docs/runbooks/smtp2graph-gateway.md}
+        annotations: {summary: SMTP2Graph TLS certificate expires in less than 5 days, runbook: docs/runbooks/smtp2graph-gateway.md}
         labels: {severity: warning, env: prod, service: smtp2graph, component: gateway}
 
       - uid: smtp2graph-tls-expiring-critical
@@ -193,11 +193,11 @@ groups:
           - refId: C
             relativeTimeRange: {from: 0, to: 0}
             datasourceUid: __expr__
-            model: {conditions: [{evaluator: {params: [7], type: lt}, operator: {type: and}, query: {params: [A]}, reducer: {params: [], type: last}, type: query}], datasource: {type: __expr__, uid: __expr__}, expression: A, intervalMs: 1000, maxDataPoints: 43200, refId: C, type: threshold}
+            model: {conditions: [{evaluator: {params: [2], type: lt}, operator: {type: and}, query: {params: [A]}, reducer: {params: [], type: last}, type: query}], datasource: {type: __expr__, uid: __expr__}, expression: A, intervalMs: 1000, maxDataPoints: 43200, refId: C, type: threshold}
         noDataState: NoData
         execErrState: Error
         for: 15m
-        annotations: {summary: SMTP2Graph TLS certificate expires in less than 7 days, runbook: docs/runbooks/smtp2graph-gateway.md}
+        annotations: {summary: SMTP2Graph TLS certificate expires in less than 2 days, runbook: docs/runbooks/smtp2graph-gateway.md}
         labels: {severity: critical, env: prod, service: smtp2graph, component: gateway}
 
       - uid: smtp2graph-synthetic-delivery-failed
