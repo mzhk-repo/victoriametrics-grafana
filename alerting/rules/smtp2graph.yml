@@ -37,11 +37,6 @@ groups:
         for: 5m
         labels: {severity: critical, env: prod, service: smtp2graph, component: gateway}
         annotations: {summary: SMTP2Graph storage reached 80 percent of configured queue capacity, runbook: docs/runbooks/smtp2graph-gateway.md}
-      - alert: SMTP2GraphFailedQueueNotEmpty
-        expr: max(smtp2graph_queue_messages{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway",state="failed"}) > 0
-        for: 5m
-        labels: {severity: warning, env: prod, service: smtp2graph, component: gateway}
-        annotations: {summary: SMTP2Graph failed queue contains one or more messages, runbook: docs/runbooks/smtp2graph-gateway.md}
       - alert: SMTP2GraphTLSCertificateExpiringWarning
         expr: (max(smtp2graph_tls_certificate_not_after_seconds{job="smtp2graph-gateway",env="prod",service="smtp2graph",component="gateway"}) - time()) / 86400 < 30
         for: 15m

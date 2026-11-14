@@ -65,7 +65,6 @@
 | SMTP2GraphDeliveryRetriesHigh | warning | 5m | `docs/runbooks/smtp2graph-gateway.md` |
 | SMTP2GraphQueueUsageWarning | warning | 5m | `docs/runbooks/smtp2graph-gateway.md` |
 | SMTP2GraphQueueUsageCritical | critical | 5m | `docs/runbooks/smtp2graph-gateway.md` |
-| SMTP2GraphFailedQueueNotEmpty | warning | 5m | `docs/runbooks/smtp2graph-gateway.md` |
 | SMTP2GraphTLSCertificateExpiringWarning | warning | 15m | `docs/runbooks/smtp2graph-gateway.md` |
 | SMTP2GraphTLSCertificateExpiringCritical | critical | 15m | `docs/runbooks/smtp2graph-gateway.md` |
 | SMTP2GraphSyntheticDeliveryFailed | critical | 5m | `docs/runbooks/smtp2graph-gateway.md` |

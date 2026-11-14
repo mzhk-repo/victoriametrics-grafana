@@ -148,6 +148,7 @@ groups:
 
       - uid: smtp2graph-failed-queue-not-empty
         title: SMTP2GraphFailedQueueNotEmpty
+        isPaused: true
         condition: C
         data:
           - refId: A

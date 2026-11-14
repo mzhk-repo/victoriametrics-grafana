@@ -1,3 +1,11 @@
+## [2026-11-14] — Pause SMTP2Graph failed-queue alert
+
+- **Context:** `SMTP2GraphFailedQueueNotEmpty` generated warning notifications while failed payloads were being handled through the gateway runbook.
+- **Change:** Paused the Grafana provisioned alert and removed its Prometheus-style rule and active catalog references.
+- **Verification:** Confirmed the rule is paused in Grafana provisioning and absent from `alerting/rules/smtp2graph.yml`; runtime provisioning was not performed.
+- **Risks:** Failed queue items will no longer trigger this warning; other SMTP2Graph delivery and queue-capacity alerts remain enabled.
+- **Rollback:** Set `isPaused: false` (or remove `isPaused`) and restore the rule in `alerting/rules/smtp2graph.yml` and the alert catalog.
+
 ## [2026-11-14] — SMTP2Graph failed queue operator procedure
 
 - **Context:** The failed-queue alert showed a nonzero count but the gateway runbook did not explain how to inspect metadata, retry a selected message, or remove a confirmed unwanted payload.
