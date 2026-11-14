@@ -18,54 +18,53 @@ VictoriaMetrics scrapes `smtp2graph_gateway:9464/metrics` only through the exter
 - TLS expiry: renew and reconcile the TLS Secret through SMTP2Graph IaC, then verify the exported `not_after` timestamp after rollout.
 - Synthetic failure: inspect `monitoring_smtp2graph-synthetic-runner` logs and its textfile metric. The runner emits no message content or credentials.
 
-## Перегляд і обробка `failed` черги
+## Remove queued or failed messages without retrying
 
-Алерт означає, що в каталозі `failed` є принаймні одне повідомлення. Панель показує кількість і розмір, але не вміст. Переглядайте лише метадані; `.eml` може містити лист, адреси та вкладення. Не використовуйте `cat`, `less`, `head` чи копіювання файлів у логи/тікет.
+The `queue` directory contains messages awaiting delivery; `failed` contains messages that could not be delivered. Removing a message is irreversible and does not fix the delivery failure. Obtain the message owner's approval before deleting it. Inspect only file metadata: `.eml` files can contain message bodies, addresses and attachments.
 
-Команди нижче виконуйте на авторизованому Swarm manager. Спершу отримайте назву активного task і container ID:
+On an authorized Swarm manager, identify the running task and its node. Verify that the service has exactly one replica before scaling it:
 
 ```bash
 docker service ps smtp2graph_gateway --filter desired-state=running --no-trunc
-TASK_ID=<ID_активного_task>
-CID=$(docker inspect --format '{{.Status.ContainerStatus.ContainerID}}' "$TASK_ID")
+docker service ls --filter name=smtp2graph_gateway
 ```
 
-Перевірте, що `CID` не порожній, а контейнер належить активному task `smtp2graph_gateway`. Перегляньте тільки імена та розміри файлів:
-
-```bash
-test -n "$CID" && docker exec "$CID" sh -c 'find /data/failed -maxdepth 1 -type f -printf "%f %s bytes\\n"'
-```
-
-Для повторної спроби спершу усуньте причину постійної помилки доставки (наприклад, Graph-доступ або політику одержувача). Повторне подання може доставити лист адресату; погодьте це з власником повідомлення. Gateway не має штатної команди retry для `failed`, тому операція потребує короткого вікна обслуговування: зупиніть gateway, перемістіть лише погоджений файл назад у `queue`, потім відновіть сервіс. Перевірте точне ім'я через метадані вище; не застосовуйте wildcard.
+Stop the gateway and wait until its task has stopped before touching its storage. This interrupts mail acceptance. Run this command on the manager:
 
 ```bash
 docker service scale smtp2graph_gateway=0
+docker service ps smtp2graph_gateway --no-trunc
 ```
 
-На хості зупиненого task, використовуючи фактичний `SMTP2GRAPH_STORAGE_HOST_PATH` з конфігурації розгортання:
+On the node that hosted the task, set the actual `SMTP2GRAPH_STORAGE_HOST_PATH` from the deployment configuration and list file names and sizes:
 
 ```bash
-STORAGE_ROOT='/фактичний/SMTP2GRAPH_STORAGE_HOST_PATH'
-FILE='точне-імя-файлу.eml'
-test -f "$STORAGE_ROOT/failed/$FILE" && test ! -e "$STORAGE_ROOT/queue/$FILE"
-mv -- "$STORAGE_ROOT/failed/$FILE" "$STORAGE_ROOT/queue/$FILE"
-docker service scale smtp2graph_gateway=1
+STORAGE_ROOT='/actual/SMTP2GRAPH_STORAGE_HOST_PATH'
+find "$STORAGE_ROOT/queue" "$STORAGE_ROOT/failed" -maxdepth 1 -type f -printf '%p %s bytes\n'
 ```
 
-Переконайтеся, що розгортання справді має одну репліку перед масштабуванням; ця процедура тимчасово зупиняє приймання пошти. Після команди перевірте `docker service ps smtp2graph_gateway` і дочекайтеся `1/1`; якщо перевірка файлу чи переміщення завершилися помилкою, окремо виконайте `docker service scale smtp2graph_gateway=1`, не видаляючи оригінал, і ескалуйте власнику SMTP2Graph. Після повторного запуску перевірте, що лічильник `state="failed"` став нульовим після наступного scrape.
-
-Видаляйте повідомлення лише після підтвердження власника, що воно не потрібне для повторної доставки чи розслідування. Видалення незворотне і саме по собі не виправляє причину збою. Після зупинки gateway та перевірки точного файлу:
+For each approved message, choose its directory and exact file name from the listing. Do not use a wildcard or a path as the file name:
 
 ```bash
-STORAGE_ROOT='/фактичний/SMTP2GRAPH_STORAGE_HOST_PATH'
-FILE='точне-імя-файлу.eml'
-test -f "$STORAGE_ROOT/failed/$FILE" && rm -- "$STORAGE_ROOT/failed/$FILE"
-docker service scale smtp2graph_gateway=1
+STATE='failed' # Use 'queue' for a message awaiting delivery.
+FILE='exact-file-name.eml'
+case "$STATE:$FILE" in
+  queue:*.eml|failed:*.eml) ;;
+  *) echo 'Invalid state or file name' >&2; false ;;
+esac && case "$FILE" in
+  */*|.*) echo 'File name must be a direct, non-hidden child' >&2; false ;;
+  *) test -f "$STORAGE_ROOT/$STATE/$FILE" && test ! -L "$STORAGE_ROOT/$STATE/$FILE" && rm -- "$STORAGE_ROOT/$STATE/$FILE" ;;
+esac
 ```
 
-Якщо перевірка або видалення завершилися помилкою, окремо відновіть сервіс командою `docker service scale smtp2graph_gateway=1`.
+Check the command's exit status and repeat the metadata listing to confirm removal. Even if a check or deletion fails, restore the service on the manager:
 
-Після відновлення сервісу дочекайтеся scrape і перевірте метрику `smtp2graph_queue_messages{state="failed"}`. Не видаляйте файли з `queue` або весь каталог `failed`. Планове очищення прострочених payloads виконується окремою процедурою SMTP2Graph із dry-run за замовчуванням; вона не призначена для негайного скидання цього алерту.
+```bash
+docker service scale smtp2graph_gateway=1
+docker service ls --filter name=smtp2graph_gateway
+```
+
+Wait for `1/1` replicas and the next scrape, then check `smtp2graph_queue_messages` for the relevant state. Other queued messages can still be delivered after restart. Scheduled retention of expired failed payloads is a separate SMTP2Graph procedure with a dry run by default.
 
 ## Synthetic runner
 
