@@ -1,3 +1,11 @@
+## [2026-11-14] — SMTP2Graph failed queue operator procedure
+
+- **Context:** The failed-queue alert showed a nonzero count but the gateway runbook did not explain how to inspect metadata, retry a selected message, or remove a confirmed unwanted payload.
+- **Change:** Added Ukrainian Swarm-manager steps to list failed payload filenames and sizes without reading message content, retry one approved payload by moving it back to `queue` during a single-replica maintenance window, and delete a payload only after owner confirmation. Documented service restoration and alert verification.
+- **Verification:** Documentation and command flow reviewed against the SMTP2Graph gateway storage layout (`/data/{queue,failed}`) and its permanent failed-payload handling. No runtime commands were executed.
+- **Risks:** Retrying may deliver a duplicate or newly deliver a previously failed message; deletion is irreversible. Scaling the gateway to zero temporarily stops SMTP intake and assumes one replica.
+- **Rollback:** Remove the failed-queue operator procedure from `docs/runbooks/smtp2graph-gateway.md`.
+
 ## [2026-10-05] — Cloudflare Tunnel dashboard: show zero when QUIC has no loss
 
 - **Context:** The QUIC lost packets panel showed `No Data` when the scrape target was healthy but no packet-loss counter series existed.
