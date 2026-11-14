@@ -40,7 +40,6 @@
 - `SMTP2GraphDeliveryRetriesHigh` — warning при накопиченні повторних спроб відправки.
 - `SMTP2GraphQueueUsageWarning` — warning при заповненні черги на 60%.
 - `SMTP2GraphQueueUsageCritical` — critical при заповненні черги на 80%.
-- `SMTP2GraphFailedQueueNotEmpty` — warning, якщо у `/data/failed` з'явилися листи.
 - `SMTP2GraphTLSCertificateExpiring` — warning за 30 днів / critical за 7 днів.
 
 ## 5. Легкий Synthetic Runner
