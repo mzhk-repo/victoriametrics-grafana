@@ -1,0 +1,328 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": false,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Status and version",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "up{job=\"opencloud\",env=~\"$env\"}",
+          "legendFormat": "Scrape status",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "B",
+          "expr": "opencloud_proxy_build_info{job=\"opencloud\",env=~\"$env\"}",
+          "legendFormat": "Version {{version}}",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 2,
+      "title": "HTTP requests and errors",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (method) (rate(opencloud_proxy_requests_total{job=\"opencloud\",env=~\"$env\"}[5m]))",
+          "legendFormat": "Requests {{method}}",
+          "instant": false,
+          "range": true
+        },
+        {
+          "refId": "B",
+          "expr": "sum by (method) (rate(opencloud_proxy_errors_total{job=\"opencloud\",env=~\"$env\"}[5m]))",
+          "legendFormat": "5xx {{method}}",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "UI / API latency P95",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(opencloud_proxy_duration_seconds_bucket{job=\"opencloud\",env=~\"$env\",method!~\"PUT|PATCH\"}[5m])))",
+          "legendFormat": "P95",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 2
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Process resources",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "process_resident_memory_bytes{job=\"opencloud\",env=~\"$env\"}",
+          "legendFormat": "Resident memory",
+          "instant": false,
+          "range": true
+        },
+        {
+          "refId": "B",
+          "expr": "process_open_fds{job=\"opencloud\",env=~\"$env\"}",
+          "legendFormat": "Open file descriptors",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Open file descriptors"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Backup and restore",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "time() - opencloud_backup_last_success_timestamp_seconds{job=\"node-exporter\",exported_env=~\"$env\",exported_service=\"opencloud\",opencloud_environment=\"true\"}",
+          "legendFormat": "Backup age",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "B",
+          "expr": "time() - opencloud_restore_smoke_last_success_timestamp_seconds{job=\"node-exporter\",exported_env=~\"$env\",exported_service=\"opencloud\",opencloud_environment=\"true\"}",
+          "legendFormat": "Restore test age",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "C",
+          "expr": "opencloud_restore_smoke_last_status{job=\"node-exporter\",exported_env=~\"$env\",exported_service=\"opencloud\",opencloud_environment=\"true\"}",
+          "legendFormat": "Restore status (1 = success)",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Restore status (1 = success)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "opencloud"
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "env",
+        "label": "Environment",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "victoriametrics"
+        },
+        "definition": "label_values(up{job=\"opencloud\"}, env)",
+        "query": {
+          "query": "label_values(up{job=\"opencloud\"}, env)",
+          "refId": "StandardVariableQuery"
+        },
+        "includeAll": false,
+        "multi": false,
+        "refresh": 1
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "OpenCloud",
+  "uid": "opencloud",
+  "version": 1
+}

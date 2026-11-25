@@ -1,0 +1,410 @@
+apiVersion: 1
+groups:
+- orgId: 1
+  name: opencloud-alerting
+  folder: KDI-P0
+  interval: 1m
+  rules:
+  - uid: open-cloud-down
+    title: OpenCloudDown
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: victoriametrics
+      model:
+        datasource:
+          type: prometheus
+          uid: victoriametrics
+        editorMode: code
+        expr: max(up{job="opencloud",service="opencloud"}) or vector(0)
+        instant: true
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: A
+    - refId: C
+      relativeTimeRange:
+        from: 0
+        to: 0
+      datasourceUid: __expr__
+      model:
+        conditions:
+        - evaluator:
+            params:
+            - 1
+            type: lt
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            params: []
+            type: last
+          type: query
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: C
+        type: threshold
+    noDataState: Alerting
+    execErrState: Error
+    for: 5m
+    annotations:
+      summary: No successful scrape of the OpenCloud metrics endpoint
+      runbook: docs/runbooks/opencloud.md
+    labels:
+      severity: critical
+      service: opencloud
+      env: $OPENCLOUD_ENV
+  - uid: open-cloud-high5xx-errors
+    title: OpenCloudHigh5xxErrors
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: victoriametrics
+      model:
+        datasource:
+          type: prometheus
+          uid: victoriametrics
+        editorMode: code
+        expr: sum(rate(opencloud_proxy_errors_total{job="opencloud",service="opencloud"}[5m])) / clamp_min(sum(rate(opencloud_proxy_requests_total{job="opencloud",service="opencloud"}[5m])),
+          1e-9)
+        instant: true
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: A
+    - refId: C
+      relativeTimeRange:
+        from: 0
+        to: 0
+      datasourceUid: __expr__
+      model:
+        conditions:
+        - evaluator:
+            params:
+            - 0.02
+            type: gt
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            params: []
+            type: last
+          type: query
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: C
+        type: threshold
+    noDataState: NoData
+    execErrState: Error
+    for: 5m
+    annotations:
+      summary: OpenCloud 5xx rate exceeds 2 percent
+      runbook: docs/runbooks/opencloud.md
+    labels:
+      severity: critical
+      service: opencloud
+      env: $OPENCLOUD_ENV
+  - uid: open-cloud-slow-u-i
+    title: OpenCloudSlowUI
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: victoriametrics
+      model:
+        datasource:
+          type: prometheus
+          uid: victoriametrics
+        editorMode: code
+        expr: histogram_quantile(0.95, sum by (le) (rate(opencloud_proxy_duration_seconds_bucket{job="opencloud",service="opencloud",method!~"PUT|PATCH"}[5m])))
+        instant: true
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: A
+    - refId: C
+      relativeTimeRange:
+        from: 0
+        to: 0
+      datasourceUid: __expr__
+      model:
+        conditions:
+        - evaluator:
+            params:
+            - 2
+            type: gt
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            params: []
+            type: last
+          type: query
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: C
+        type: threshold
+    noDataState: NoData
+    execErrState: Error
+    for: 5m
+    annotations:
+      summary: OpenCloud UI and API P95 latency exceeds 2 seconds
+      runbook: docs/runbooks/opencloud.md
+    labels:
+      severity: warning
+      service: opencloud
+      env: $OPENCLOUD_ENV
+  - uid: open-cloud-disk-space-low
+    title: OpenCloudDiskSpaceLow
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: victoriametrics
+      model:
+        datasource:
+          type: prometheus
+          uid: victoriametrics
+        editorMode: code
+        expr: node_filesystem_avail_bytes{job="node-exporter",opencloud_storage="true"}
+        instant: true
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: A
+    - refId: C
+      relativeTimeRange:
+        from: 0
+        to: 0
+      datasourceUid: __expr__
+      model:
+        conditions:
+        - evaluator:
+            params:
+            - 53687091200
+            type: lt
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            params: []
+            type: last
+          type: query
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: C
+        type: threshold
+    noDataState: Alerting
+    execErrState: Error
+    for: 5m
+    annotations:
+      summary: OpenCloud storage has less than 50 GiB available
+      runbook: docs/runbooks/opencloud.md
+    labels:
+      severity: warning
+      service: opencloud
+      env: $OPENCLOUD_ENV
+  - uid: open-cloud-host-o-o-m-risk
+    title: OpenCloudHostOOMRisk
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: victoriametrics
+      model:
+        datasource:
+          type: prometheus
+          uid: victoriametrics
+        editorMode: code
+        expr: node_memory_MemAvailable_bytes{job="node-exporter"} / node_memory_MemTotal_bytes{job="node-exporter"}
+        instant: true
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: A
+    - refId: C
+      relativeTimeRange:
+        from: 0
+        to: 0
+      datasourceUid: __expr__
+      model:
+        conditions:
+        - evaluator:
+            params:
+            - 0.1
+            type: lt
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            params: []
+            type: last
+          type: query
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: C
+        type: threshold
+    noDataState: Alerting
+    execErrState: Error
+    for: 5m
+    annotations:
+      summary: OpenCloud host has less than 10 percent memory available
+      runbook: docs/runbooks/opencloud.md
+    labels:
+      severity: critical
+      service: opencloud
+      env: $OPENCLOUD_ENV
+  - uid: open-cloud-backup-missing
+    title: OpenCloudBackupMissing
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: victoriametrics
+      model:
+        datasource:
+          type: prometheus
+          uid: victoriametrics
+        editorMode: code
+        expr: time() - (max(opencloud_backup_last_success_timestamp_seconds{job="node-exporter",exported_service="opencloud",opencloud_environment="true"})
+          or vector(0))
+        instant: true
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: A
+    - refId: C
+      relativeTimeRange:
+        from: 0
+        to: 0
+      datasourceUid: __expr__
+      model:
+        conditions:
+        - evaluator:
+            params:
+            - 93600
+            type: gt
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            params: []
+            type: last
+          type: query
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: C
+        type: threshold
+    noDataState: Alerting
+    execErrState: Error
+    for: 10m
+    annotations:
+      summary: OpenCloud backup has not succeeded within 26 hours or is missing
+      runbook: docs/runbooks/opencloud.md
+    labels:
+      severity: critical
+      service: opencloud
+      env: $OPENCLOUD_ENV
+  - uid: open-cloud-restore-test-failed
+    title: OpenCloudRestoreTestFailed
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: victoriametrics
+      model:
+        datasource:
+          type: prometheus
+          uid: victoriametrics
+        editorMode: code
+        expr: ((time() - (max(opencloud_restore_smoke_last_success_timestamp_seconds{job="node-exporter",exported_service="opencloud",opencloud_environment="true"})
+          or vector(0))) > bool 691200) + ((max(opencloud_restore_smoke_last_status{job="node-exporter",exported_service="opencloud",opencloud_environment="true"})
+          or vector(0)) == bool 0)
+        instant: true
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: A
+    - refId: C
+      relativeTimeRange:
+        from: 0
+        to: 0
+      datasourceUid: __expr__
+      model:
+        conditions:
+        - evaluator:
+            params:
+            - 0
+            type: gt
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            params: []
+            type: last
+          type: query
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        intervalMs: 1000
+        maxDataPoints: 43200
+        refId: C
+        type: threshold
+    noDataState: Alerting
+    execErrState: Error
+    for: 10m
+    annotations:
+      summary: OpenCloud restore test failed, is missing, or is older than 8 days
+      runbook: docs/runbooks/opencloud.md
+    labels:
+      severity: warning
+      service: opencloud
+      env: $OPENCLOUD_ENV

@@ -11,5 +11,6 @@ Phase 3 (P0) включає 5 must-have dashboards + Phase 6 розширенн�
 - `traefik-v3-official-17346.json`
 - `cloudflare-tunnel-overview.json`
 - `smtp2graph-gateway.json` (SMTP2Graph Gateway)
+- `opencloud.json` (OpenCloud)
 
 Джерело: dashboards з Grafana.com або KDI custom dashboards, адаптовані під datasource `VictoriaMetrics` (`uid: victoriametrics`) для file provisioning.

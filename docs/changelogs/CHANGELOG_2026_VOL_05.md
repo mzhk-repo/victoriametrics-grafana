@@ -1,3 +1,11 @@
+## [2026-11-25] — OpenCloud dashboard, metrics and alerts
+
+- **Context:** OpenCloud needs service and storage monitoring using its internal metrics endpoint and Node Exporter backup and restore metrics.
+- **Change:** Added the OpenCloud dashboard, scrape job, environment-specific storage mountpoint selection, and seven Grafana and Prometheus-style alerts with an operator runbook.
+- **Verification:** Local configuration tests and syntax checks; live provisioning, metric ingestion, alert behavior and notifications remain to be verified after deployment.
+- **Risks:** The renderer requires OpenCloud environment and mountpoint configuration; missing backup or restore metrics cause alerts. The shared debug listener exposes additional endpoints to overlay peers.
+- **Rollback:** Remove the OpenCloud dashboard and alert files, revert the scrape job and Node Exporter relabel rules, renderer and environment changes, and restore the previous monitoring deployment.
+
 ## [2026-11-14] — Pause SMTP2Graph failed-queue alert
 
 - **Context:** `SMTP2GraphFailedQueueNotEmpty` generated warning notifications while failed payloads were being handled through the gateway runbook.
