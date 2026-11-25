@@ -68,9 +68,17 @@ assert len(grafana) == len(prom) == 7
 assert {r['title'] for r in grafana} == {r['alert'] for r in prom}
 assert all(r['labels']['env'] == '$OPENCLOUD_ENV' for r in grafana)
 assert all('opencloud_environment="true"' in r['data'][0]['model']['expr'] for r in grafana if r['title'] in ('OpenCloudBackupMissing', 'OpenCloudRestoreTestFailed'))
-dashboard = json.loads(Path('grafana/dashboards/opencloud.json').read_text())
+dashboard = json.loads(Path('grafana/provisioning/opencloud-dashboards/opencloud.json').read_text())
 assert dashboard['title'] == 'OpenCloud' and len(dashboard['panels']) == 5
 assert len({p['id'] for p in dashboard['panels']}) == 5
+provider = yaml.safe_load(Path('grafana/provisioning/dashboards/dashboards.yml').read_text())['providers']
+opencloud = next(p for p in provider if p['name'] == 'opencloud-dashboards')
+assert opencloud['folder'] == 'OpenCloud'
+assert opencloud['options']['path'] == '/etc/grafana/provisioning/opencloud-dashboards'
+host = json.loads(Path('grafana/provisioning/opencloud-dashboards/host.json').read_text())
+assert host['title'] == 'OpenCloud Host' and host['uid'] != dashboard['uid']
+assert any('opencloud_storage="true"' in t['expr'] for p in host['panels'] for t in p['targets'])
+
 PYTEST
 
 contains_fixed 'networks: !override' docker-compose.swarm.yml

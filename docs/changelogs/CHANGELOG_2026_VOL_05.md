@@ -1,3 +1,11 @@
+## [2026-11-25] — Separate OpenCloud Grafana folder
+
+- **Context:** The OpenCloud dashboard was provisioned in KDI-P0 alongside unrelated dashboards.
+- **Change:** Moved the service dashboard to a dedicated OpenCloud folder and added an OpenCloud Host dashboard with CPU, memory, storage, inode and I/O wait panels.
+- **Verification:** Local provisioning and dashboard configuration checks; Grafana provisioning remains to be verified after deployment.
+- **Risks:** Moving an existing provisioned dashboard between providers may temporarily remove it during reconciliation. Host metrics require Node Exporter on the storage node and the configured mountpoint.
+- **Rollback:** Restore the OpenCloud dashboard to the KDI-P0 dashboard directory and remove the new provider and OpenCloud Host dashboard.
+
 ## [2026-11-25] — OpenCloud dashboard, metrics and alerts
 
 - **Context:** OpenCloud needs service and storage monitoring using its internal metrics endpoint and Node Exporter backup and restore metrics.
