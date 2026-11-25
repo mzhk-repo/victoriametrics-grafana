@@ -11,6 +11,17 @@ scrape_configs:
           service: monitoring
 
   - job_name: node-exporter
+    metric_relabel_configs:
+      - source_labels: [__name__, mountpoint]
+        separator: ';'
+        regex: 'node_filesystem_.*;__OPENCLOUD_MOUNT_REGEX__'
+        target_label: opencloud_storage
+        replacement: 'true'
+      - source_labels: [__name__, exported_env]
+        separator: ';'
+        regex: 'opencloud_.*;__OPENCLOUD_ENV__'
+        target_label: opencloud_environment
+        replacement: 'true'
     static_configs:
       - targets:
           - node-exporter:9100
@@ -90,6 +101,15 @@ scrape_configs:
           env: prod
           service: smtp2graph
           component: gateway
+
+  - job_name: opencloud
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - opencloud_opencloud:9205
+        labels:
+          env: __OPENCLOUD_ENV__
+          service: opencloud
 
   - job_name: blackbox-koha-opac
     metrics_path: /probe

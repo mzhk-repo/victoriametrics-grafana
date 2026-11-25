@@ -9,7 +9,7 @@
 ## Рішення
 Фіксуємо схему labels:
 - `env` (обов'язково): `prod`
-- `service` (обов'язково): `koha|dspace|integrator|monitoring|host|traefik|cloudflare`
+- `service` (обов'язково): `koha|dspace|integrator|monitoring|host|traefik|cloudflare|opencloud`
 - `component` (опціонально): `db|search|cache|broker|tunnel`
 
 ## Приклад

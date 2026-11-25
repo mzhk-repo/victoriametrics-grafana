@@ -20,6 +20,20 @@
 - Для сценарію повної недоступності VictoriaMetrics datasource використовується `execErrState=Alerting`.
 - Стан перевірено контрольованим outage/recovery тестом у Phase 5 (2026-03-10).
 
+## OpenCloud
+
+The OpenCloud dashboard and seven alerts use the service scrape endpoint and Node Exporter on the storage host. Configure the environment and exact storage mountpoint before deployment; absent backup or restore metrics trigger alerts. See `docs/runbooks/opencloud.md` for prerequisites, thresholds, and verification.
+
+| Rule | Severity | For |
+|------|----------|-----|
+| OpenCloudDown | critical | 5m |
+| OpenCloudHigh5xxErrors | critical | 5m |
+| OpenCloudSlowUI | warning | 5m |
+| OpenCloudDiskSpaceLow | warning | 5m |
+| OpenCloudHostOOMRisk | critical | 5m |
+| OpenCloudBackupMissing | critical | 10m |
+| OpenCloudRestoreTestFailed | warning | 10m |
+
 ## P0 Rules
 
 | Rule | Severity | For | Runbook |

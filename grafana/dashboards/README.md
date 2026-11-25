@@ -12,4 +12,6 @@ Phase 3 (P0) включає 5 must-have dashboards + Phase 6 розширенн�
 - `cloudflare-tunnel-overview.json`
 - `smtp2graph-gateway.json` (SMTP2Graph Gateway)
 
+OpenCloud dashboards are provisioned separately in the `OpenCloud` folder from `grafana/provisioning/opencloud-dashboards/`.
+
 Джерело: dashboards з Grafana.com або KDI custom dashboards, адаптовані під datasource `VictoriaMetrics` (`uid: victoriametrics`) для file provisioning.

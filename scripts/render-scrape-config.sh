@@ -43,6 +43,8 @@ DSPACE_API_URL="$(read_env_or_default DSPACE_API_URL "$ENV_FILE" "${DSPACE_API_U
 CLOUDFLARE_TUNNEL_METRICS_TARGET="$(read_env_or_default CLOUDFLARE_TUNNEL_METRICS_TARGET "$ENV_FILE" "${CLOUDFLARE_TUNNEL_METRICS_TARGET:-}")"
 CLOUDFLARE_TUNNEL_NAME="$(read_env_or_default CLOUDFLARE_TUNNEL_NAME "$ENV_FILE" "${CLOUDFLARE_TUNNEL_NAME:-grafana}")"
 SMTP2GRAPH_METRICS_TARGET="$(read_env_or_default SMTP2GRAPH_METRICS_TARGET "$ENV_FILE" "${SMTP2GRAPH_METRICS_TARGET:-}")"
+OPENCLOUD_ENV="$(read_env_or_default OPENCLOUD_ENV "$ENV_FILE" "${SERVER_ENV:-}")"
+OPENCLOUD_STORAGE_MOUNTPOINT="$(read_env_or_default OPENCLOUD_STORAGE_MOUNTPOINT "$ENV_FILE" "")"
 
 : "${KOHA_OPAC_URL:?KOHA_OPAC_URL is required (env var or env file)}"
 : "${KOHA_STAFF_URL:?KOHA_STAFF_URL is required (env var or env file)}"
@@ -52,6 +54,17 @@ SMTP2GRAPH_METRICS_TARGET="$(read_env_or_default SMTP2GRAPH_METRICS_TARGET "$ENV
 : "${CLOUDFLARE_TUNNEL_METRICS_TARGET:?CLOUDFLARE_TUNNEL_METRICS_TARGET is required (env var or env file)}"
 : "${CLOUDFLARE_TUNNEL_NAME:?CLOUDFLARE_TUNNEL_NAME is required (env var or env file)}"
 : "${SMTP2GRAPH_METRICS_TARGET:?SMTP2GRAPH_METRICS_TARGET is required (env var or env file)}"
+: "${OPENCLOUD_ENV:?OPENCLOUD_ENV or SERVER_ENV is required (dev or prod)}"
+: "${OPENCLOUD_STORAGE_MOUNTPOINT:?OPENCLOUD_STORAGE_MOUNTPOINT is required}"
+
+if [[ ! "$OPENCLOUD_ENV" =~ ^(dev|prod)$ ]]; then
+  echo "OPENCLOUD_ENV must be dev or prod" >&2
+  exit 1
+fi
+if [[ ! "$OPENCLOUD_STORAGE_MOUNTPOINT" =~ ^/[A-Za-z0-9_./-]*$ ]]; then
+  echo "OPENCLOUD_STORAGE_MOUNTPOINT must be an absolute mountpoint without spaces or special characters" >&2
+  exit 1
+fi
 
 if [[ ! "$KOHA_OPAC_URL" =~ ^https?:// ]]; then
   echo "KOHA_OPAC_URL must start with http:// or https://" >&2
@@ -115,6 +128,8 @@ dspace_api_escaped="$(escape_sed "$DSPACE_API_URL")"
 cloudflare_tunnel_target_escaped="$(escape_sed "$CLOUDFLARE_TUNNEL_METRICS_TARGET")"
 cloudflare_tunnel_name_escaped="$(escape_sed "$CLOUDFLARE_TUNNEL_NAME")"
 smtp2graph_metrics_target_escaped="$(escape_sed "$SMTP2GRAPH_METRICS_TARGET")"
+opencloud_mount_regex="$(printf '%s' "$OPENCLOUD_STORAGE_MOUNTPOINT" | sed 's/[.]/\\&/g')"
+opencloud_mount_escaped="$(escape_sed "$opencloud_mount_regex")"
 
 tmp_file="$(mktemp)"
 trap 'rm -f "$tmp_file"' EXIT
@@ -128,6 +143,8 @@ sed \
   -e "s/__CLOUDFLARE_TUNNEL_METRICS_TARGET__/${cloudflare_tunnel_target_escaped}/g" \
   -e "s/__CLOUDFLARE_TUNNEL_NAME__/${cloudflare_tunnel_name_escaped}/g" \
   -e "s/__SMTP2GRAPH_METRICS_TARGET__/${smtp2graph_metrics_target_escaped}/g" \
+  -e "s/__OPENCLOUD_ENV__/${OPENCLOUD_ENV}/g" \
+  -e "s/__OPENCLOUD_MOUNT_REGEX__/${opencloud_mount_escaped}/g" \
   "$TEMPLATE_FILE" > "$tmp_file"
 
 if [[ -f "$OUTPUT_FILE" ]] && cmp -s "$tmp_file" "$OUTPUT_FILE"; then

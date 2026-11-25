@@ -15,6 +15,10 @@
 | Traefik v3 | `grafana/dashboards/traefik-v3-official-17346.json` | Traefik Official (`17346`) | request rate, error rate, latency percentiles |
 | Cloudflare Tunnel | `grafana/dashboards/cloudflare-tunnel-overview.json` | KDI custom | tunnel health, HA connections, request/error rate, QUIC RTT/loss, edge locations |
 
+## OpenCloud
+
+The `OpenCloud` Grafana folder contains `OpenCloud` and `OpenCloud Host`, provisioned from `grafana/provisioning/opencloud-dashboards/`. The host dashboard uses the same Node Exporter Full layout as KDI Host Overview; select the storage node using its dashboard variables. See `docs/runbooks/opencloud.md`.
+
 ## Примітка для `KDI Traefik v3 Overview`
 - Змінна `service` фільтрується як `.*@docker`, щоб прибрати технічні/історичні серії.
 - Панелі по `traefik_service_*` заповнюються тільки коли є реальний routed traffic через Traefik (з правильним `Host` для router rule), а не тільки `404` на дефолтний маршрут.

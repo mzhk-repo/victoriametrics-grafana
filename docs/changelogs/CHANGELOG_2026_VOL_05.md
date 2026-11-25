@@ -1,3 +1,27 @@
+## [2026-11-25] — Align OpenCloud host dashboard with KDI
+
+- **Context:** OpenCloud Host needs the same host dashboard as KDI Host Overview.
+- **Change:** Replaced the compact host dashboard with the existing Node Exporter Full dashboard, retaining a separate title and UID.
+- **Verification:** Local dashboard equivalence and observability configuration checks; Grafana provisioning remains to be verified after deployment.
+- **Risks:** The host and filesystem must be selected using the dashboard variables; future updates to the KDI copy must also be applied to the OpenCloud copy.
+- **Rollback:** Restore the previous compact OpenCloud Host dashboard and its configuration check.
+
+## [2026-11-25] — Separate OpenCloud Grafana folder
+
+- **Context:** The OpenCloud dashboard was provisioned in KDI-P0 alongside unrelated dashboards.
+- **Change:** Moved the service dashboard to a dedicated OpenCloud folder and added an OpenCloud Host dashboard with CPU, memory, storage, inode and I/O wait panels.
+- **Verification:** Local provisioning and dashboard configuration checks; Grafana provisioning remains to be verified after deployment.
+- **Risks:** Moving an existing provisioned dashboard between providers may temporarily remove it during reconciliation. Host metrics require Node Exporter on the storage node and the configured mountpoint.
+- **Rollback:** Restore the OpenCloud dashboard to the KDI-P0 dashboard directory and remove the new provider and OpenCloud Host dashboard.
+
+## [2026-11-25] — OpenCloud dashboard, metrics and alerts
+
+- **Context:** OpenCloud needs service and storage monitoring using its internal metrics endpoint and Node Exporter backup and restore metrics.
+- **Change:** Added the OpenCloud dashboard, scrape job, environment-specific storage mountpoint selection, and seven Grafana and Prometheus-style alerts with an operator runbook.
+- **Verification:** Local configuration tests and syntax checks; live provisioning, metric ingestion, alert behavior and notifications remain to be verified after deployment.
+- **Risks:** The renderer requires OpenCloud environment and mountpoint configuration; missing backup or restore metrics cause alerts. The shared debug listener exposes additional endpoints to overlay peers.
+- **Rollback:** Remove the OpenCloud dashboard and alert files, revert the scrape job and Node Exporter relabel rules, renderer and environment changes, and restore the previous monitoring deployment.
+
 ## [2026-11-14] — Pause SMTP2Graph failed-queue alert
 
 - **Context:** `SMTP2GraphFailedQueueNotEmpty` generated warning notifications while failed payloads were being handled through the gateway runbook.
