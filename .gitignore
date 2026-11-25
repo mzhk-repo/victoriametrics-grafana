@@ -17,9 +17,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-AGENTS.md
-hello-world.md
-NOTES.md
 scrape-config.yml
 /victoria-metrics/scrape-config.yml
 .backups/
