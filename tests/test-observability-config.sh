@@ -77,7 +77,8 @@ assert opencloud['folder'] == 'OpenCloud'
 assert opencloud['options']['path'] == '/etc/grafana/provisioning/opencloud-dashboards'
 host = json.loads(Path('grafana/provisioning/opencloud-dashboards/host.json').read_text())
 assert host['title'] == 'OpenCloud Host' and host['uid'] != dashboard['uid']
-assert any('opencloud_storage="true"' in t['expr'] for p in host['panels'] for t in p['targets'])
+original_host = json.loads(Path('grafana/dashboards/host-overview-node-exporter-1860.json').read_text())
+assert {k: v for k, v in host.items() if k not in ('title', 'uid')} == {k: v for k, v in original_host.items() if k not in ('title', 'uid')}
 
 PYTEST
 

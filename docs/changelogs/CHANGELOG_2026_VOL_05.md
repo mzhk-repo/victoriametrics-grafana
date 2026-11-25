@@ -1,3 +1,11 @@
+## [2026-11-25] — Align OpenCloud host dashboard with KDI
+
+- **Context:** OpenCloud Host needs the same host dashboard as KDI Host Overview.
+- **Change:** Replaced the compact host dashboard with the existing Node Exporter Full dashboard, retaining a separate title and UID.
+- **Verification:** Local dashboard equivalence and observability configuration checks; Grafana provisioning remains to be verified after deployment.
+- **Risks:** The host and filesystem must be selected using the dashboard variables; future updates to the KDI copy must also be applied to the OpenCloud copy.
+- **Rollback:** Restore the previous compact OpenCloud Host dashboard and its configuration check.
+
 ## [2026-11-25] — Separate OpenCloud Grafana folder
 
 - **Context:** The OpenCloud dashboard was provisioned in KDI-P0 alongside unrelated dashboards.

@@ -17,7 +17,7 @@
 
 ## OpenCloud
 
-The `OpenCloud` Grafana folder contains `OpenCloud` and `OpenCloud Host`, provisioned from `grafana/provisioning/opencloud-dashboards/`. The host dashboard reads Node Exporter on the storage node and identifies its filesystem through `OPENCLOUD_STORAGE_MOUNTPOINT`; see `docs/runbooks/opencloud.md`.
+The `OpenCloud` Grafana folder contains `OpenCloud` and `OpenCloud Host`, provisioned from `grafana/provisioning/opencloud-dashboards/`. The host dashboard uses the same Node Exporter Full layout as KDI Host Overview; select the storage node using its dashboard variables. See `docs/runbooks/opencloud.md`.
 
 ## Примітка для `KDI Traefik v3 Overview`
 - Змінна `service` фільтрується як `.*@docker`, щоб прибрати технічні/історичні серії.
